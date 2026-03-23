@@ -1,0 +1,283 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}Order #{{ order.pk }} — OJA{% endblock %}
+
+{% block extra_head %}
+<style>
+  .od-wrap   { max-width:860px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+  .od-header { background:linear-gradient(135deg,#1e293b,#334155); border-radius:12px; padding:1.75rem 2rem; color:#fff; margin-bottom:1.5rem; }
+  .od-order-num { font-size:1.5rem; font-weight:800; }
+  .od-sub { color:rgba(255,255,255,.6); font-size:.875rem; margin-top:.25rem; }
+
+  /* Status badge */
+  .od-status { display:inline-flex; align-items:center; gap:.4rem; font-size:.85rem; font-weight:700; padding:.35rem .9rem; border-radius:20px; }
+  .od-status-pending   { background:#fef9c3; color:#92400e; }
+  .od-status-paid      { background:#dbeafe; color:#1d4ed8; }
+  .od-status-shipped   { background:#e0e7ff; color:#4338ca; }
+  .od-status-delivered { background:#dcfce7; color:#15803d; }
+  .od-status-confirmed { background:#dcfce7; color:#15803d; }
+  .od-status-disputed  { background:#fee2e2; color:#b91c1c; }
+  .od-status-cancelled { background:#f3f4f6; color:#6b7280; }
+  .od-status-refunded  { background:#fce7f3; color:#9d174d; }
+
+  /* Timeline */
+  .timeline { position:relative; padding-left:2rem; }
+  .timeline::before { content:''; position:absolute; left:.6rem; top:0; bottom:0; width:2px; background:var(--border); }
+  .tl-item { position:relative; margin-bottom:1.5rem; }
+  .tl-dot  { position:absolute; left:-2rem; top:.2rem; width:14px; height:14px; border-radius:50%; background:var(--border); border:2px solid #fff; box-shadow:0 0 0 2px var(--border); }
+  .tl-dot.done  { background:var(--gold); box-shadow:0 0 0 2px rgba(212,175,55,.3); }
+  .tl-dot.active { background:var(--gold); box-shadow:0 0 0 4px rgba(212,175,55,.2); }
+  .tl-dot.error { background:#ef4444; box-shadow:0 0 0 4px rgba(239,68,68,.2); }
+  .tl-label { font-weight:700; font-size:.9rem; color:var(--gray-dark); }
+  .tl-sub   { font-size:.8rem; color:var(--text-muted); margin-top:.15rem; }
+
+  /* Enquiry chat */
+  .eq-bubble { padding:.875rem 1.1rem; border-radius:12px; max-width:80%; margin-bottom:.75rem; }
+  .eq-buyer  { background:var(--gold-light); border:1px solid rgba(212,175,55,.25); margin-left:auto; border-radius:12px 12px 2px 12px; }
+  .eq-seller { background:var(--gray-light); border-radius:12px 12px 12px 2px; }
+  .eq-dispute { background:#fee2e2; border:1px solid #fca5a5; border-radius:12px; }
+  .eq-name { font-size:.75rem; font-weight:700; color:var(--text-muted); margin-bottom:.25rem; }
+  .eq-text { font-size:.9rem; line-height:1.5; }
+  .eq-time { font-size:.72rem; color:var(--text-muted); margin-top:.3rem; text-align:right; }
+
+  /* Action cards */
+  .action-card { border:1px solid var(--border); border-radius:10px; padding:1.25rem; }
+  .action-card h4 { font-weight:700; font-size:.9rem; margin-bottom:.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding-top:80px">
+<div class="od-wrap">
+
+  <!-- Back -->
+  <a href="{% url 'customer_profile' %}" style="display:inline-flex;align-items:center;gap:.4rem;color:var(--text-muted);font-size:.875rem;margin-bottom:1.25rem;text-decoration:none">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Back to My Orders
+  </a>
+
+  <!-- Header -->
+  <div class="od-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+      <div>
+        <div class="od-order-num">Order #{{ order.pk }}</div>
+        <div class="od-sub">Placed {{ order.created_at|date:"N j, Y · g:i A" }} · <a href="{% url 'brand_detail' order.brand.id %}" style="color:var(--gold)">{{ order.brand.name }}</a></div>
+      </div>
+      <span class="od-status od-status-{{ order.status }}">
+        {% if order.status == 'paid' %}🔒{% elif order.status == 'shipped' %}📦{% elif order.status == 'confirmed' %}✅{% elif order.status == 'disputed' %}⚠{% elif order.status == 'cancelled' %}✕{% elif order.status == 'refunded' %}↩{% else %}⏳{% endif %}
+        {{ order.get_status_display }}
+      </span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start">
+
+    <!-- LEFT column -->
+    <div>
+
+      <!-- Order Timeline -->
+      <div class="card card-body" style="margin-bottom:1.5rem">
+        <h3 style="font-weight:700;margin-bottom:1.25rem">📍 Order Timeline</h3>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot done"></div>
+            <div class="tl-label">Order Placed</div>
+            <div class="tl-sub">{{ order.created_at|date:"N j, Y · g:i A" }}</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot {% if order.status != 'pending' %}done{% endif %}"></div>
+            <div class="tl-label" style="{% if order.status == 'pending' %}color:var(--text-muted){% endif %}">Payment Confirmed</div>
+            {% if order.escrow_held_at %}
+            <div class="tl-sub">{{ order.escrow_held_at|date:"N j, Y · g:i A" }} · Funds held in escrow</div>
+            {% else %}<div class="tl-sub">Awaiting payment</div>{% endif %}
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot {% if order.status in 'shipped,delivered,confirmed' %}done{% elif order.status == 'disputed' %}error{% endif %}"></div>
+            <div class="tl-label" style="{% if order.status == 'paid' or order.status == 'pending' %}color:var(--text-muted){% endif %}">
+              {% if order.status == 'disputed' %}⚠ Disputed{% else %}Shipped / Out for Delivery{% endif %}
+            </div>
+            <div class="tl-sub">
+              {% if order.status == 'shipped' %}Order is on its way
+              {% elif order.status == 'delivered' %}Arrived at delivery point
+              {% elif order.status == 'disputed' %}Dispute raised — under review
+              {% elif order.status == 'cancelled' %}Order was cancelled
+              {% else %}Seller will pack and ship{% endif %}
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot {% if order.status == 'confirmed' %}done{% endif %}"></div>
+            <div class="tl-label" style="{% if order.status != 'confirmed' %}color:var(--text-muted){% endif %}">Delivered & Confirmed</div>
+            {% if order.confirmed_at %}
+            <div class="tl-sub">{{ order.confirmed_at|date:"N j, Y · g:i A" }} · Funds released to seller</div>
+            {% else %}<div class="tl-sub">You'll confirm once you receive your item</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div class="card card-body" style="margin-bottom:1.5rem">
+        <h3 style="font-weight:700;margin-bottom:1rem">🛍 Items Ordered</h3>
+        {% for item in order.items.all %}
+        <div style="display:flex;align-items:center;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--border)">
+          <div style="width:52px;height:52px;border-radius:8px;background:var(--gray-light);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;overflow:hidden">
+            {% if item.product and item.product.image %}<img src="{{ item.product.image.url }}" style="width:100%;height:100%;object-fit:cover">{% else %}📦{% endif %}
+          </div>
+          <div style="flex:1">
+            <div style="font-weight:600">{{ item.product_name }}</div>
+            <div style="font-size:.85rem;color:var(--text-muted)">Qty: {{ item.quantity }} × ₦{{ item.product_price|floatformat:0 }}</div>
+          </div>
+          <div style="font-weight:700">₦{{ item.line_total|floatformat:0 }}</div>
+        </div>
+        {% endfor %}
+        <!-- Totals -->
+        <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.35rem">
+          <div style="display:flex;justify-content:space-between;font-size:.9rem;color:var(--text-muted)"><span>Subtotal</span><span>₦{{ order.subtotal|floatformat:0 }}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:.9rem;color:var(--text-muted)"><span>Delivery{% if order.delivery_zone %} · {{ order.delivery_zone.name }}{% endif %}</span><span>₦{{ order.delivery_fee|floatformat:0 }}</span></div>
+          <div style="display:flex;justify-content:space-between;font-weight:800;font-size:1.05rem;border-top:1px solid var(--border);padding-top:.5rem;margin-top:.25rem"><span>Total Paid</span><span class="text-gold">₦{{ order.total|floatformat:0 }}</span></div>
+        </div>
+      </div>
+
+      <!-- Delivery info -->
+      {% if order.delivery_address or order.runner_note %}
+      <div class="card card-body" style="margin-bottom:1.5rem">
+        <h3 style="font-weight:700;margin-bottom:.75rem">🛵 Delivery Details</h3>
+        {% if order.delivery_address %}<div style="font-size:.9rem;margin-bottom:.4rem"><strong>Address:</strong> {{ order.delivery_address }}</div>{% endif %}
+        {% if order.runner_note %}<div style="font-size:.9rem;color:var(--text-muted)"><strong>Note:</strong> {{ order.runner_note }}</div>{% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Enquiry / Chat thread -->
+      <div class="card card-body" style="margin-bottom:1.5rem">
+        <h3 style="font-weight:700;margin-bottom:1rem">💬 Messages with Seller</h3>
+
+        {% if enquiries %}
+        <div style="margin-bottom:1.25rem">
+          {% for eq in enquiries %}
+          <div>
+            {% if eq.sender == user %}
+              <div style="display:flex;justify-content:flex-end">
+                <div class="eq-bubble eq-buyer {% if eq.enquiry_type == 'dispute' %}eq-dispute{% endif %}">
+                  <div class="eq-name">You{% if eq.enquiry_type == 'dispute' %} · DISPUTE{% endif %}</div>
+                  <div class="eq-text">{{ eq.message }}</div>
+                  <div class="eq-time">{{ eq.created_at|date:"N j · g:i A" }}</div>
+                </div>
+              </div>
+            {% else %}
+              <div class="eq-bubble eq-seller">
+                <div class="eq-name">{{ order.brand.name }}</div>
+                <div class="eq-text">{{ eq.message }}</div>
+                <div class="eq-time">{{ eq.created_at|date:"N j · g:i A" }}</div>
+              </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:var(--text-muted);font-size:.875rem;margin-bottom:1rem">No messages yet. Ask the seller anything about your order.</p>
+        {% endif %}
+
+        <!-- Send message form -->
+        {% if order.status not in 'cancelled,refunded,confirmed' %}
+        <form method="post" action="{% url 'send_enquiry' order.pk %}">
+          {% csrf_token %}
+          <div style="display:flex;gap:.5rem">
+            <input type="text" name="message" placeholder="Ask the seller something…" class="input-field" style="flex:1" required>
+            <button type="submit" class="btn-gold" style="padding:.6rem 1.1rem;white-space:nowrap">Send</button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- RIGHT column — actions -->
+    <div style="display:flex;flex-direction:column;gap:1rem">
+
+      <!-- Escrow box -->
+      {% if order.status == 'paid' or order.status == 'shipped' %}
+      <div style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1.5px solid var(--gold);border-radius:10px;padding:1.25rem">
+        <div style="font-weight:700;margin-bottom:.4rem">🔒 Funds in Escrow</div>
+        <div style="font-size:.875rem;color:var(--text-muted);margin-bottom:.75rem">₦{{ order.total|floatformat:0 }} is held safely. Release to seller only when your item arrives.</div>
+        {% if order.status == 'shipped' or order.status == 'delivered' %}
+        <form method="post" action="{% url 'confirm_delivery' order.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-gold w-full" style="justify-content:center;font-size:.9rem">✅ Item Received — Release Funds</button>
+        </form>
+        {% else %}
+        <div style="font-size:.8rem;color:var(--text-muted)">Button will activate once seller ships.</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Confirmed -->
+      {% if order.status == 'confirmed' %}
+      <div style="background:#dcfce7;border:1.5px solid #86efac;border-radius:10px;padding:1.25rem;text-align:center">
+        <div style="font-size:1.75rem;margin-bottom:.35rem">✅</div>
+        <div style="font-weight:700;color:#15803d">Order Complete</div>
+        <div style="font-size:.8rem;color:#15803d;margin-top:.25rem">Funds released to seller</div>
+      </div>
+      {% endif %}
+
+      <!-- Cancel -->
+      {% if order.status in 'pending,paid' %}
+      <div class="action-card">
+        <h4>❌ Cancel Order</h4>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem">You can cancel before the seller ships. Stock will be restored.</p>
+        <form method="post" action="{% url 'cancel_order' order.pk %}" onsubmit="return confirm('Cancel this order? This cannot be undone.')">
+          {% csrf_token %}
+          <div class="form-group" style="margin-bottom:.75rem">
+            <input type="text" name="reason" placeholder="Reason (optional)" class="input-field">
+          </div>
+          <button type="submit" class="btn-danger w-full">Cancel Order</button>
+        </form>
+      </div>
+      {% endif %}
+
+      <!-- Dispute -->
+      {% if order.status in 'paid,shipped,delivered' %}
+      <div class="action-card" style="border-color:#fca5a5">
+        <h4>⚠ Raise a Dispute</h4>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem">Item not arrived, wrong item, or damaged? Raise a dispute and our team will review.</p>
+        <form method="post" action="{% url 'dispute_order' order.pk %}">
+          {% csrf_token %}
+          <div class="form-group" style="margin-bottom:.75rem">
+            <textarea name="reason" rows="3" class="input-field" placeholder="Describe the issue clearly…" required></textarea>
+          </div>
+          <button type="submit" class="btn-danger w-full" style="background:#f59e0b;border-color:#f59e0b">⚠ Raise Dispute</button>
+        </form>
+      </div>
+      {% endif %}
+
+      <!-- Disputed state info -->
+      {% if order.status == 'disputed' %}
+      <div style="background:#fee2e2;border:1.5px solid #fca5a5;border-radius:10px;padding:1.25rem">
+        <div style="font-weight:700;color:#b91c1c;margin-bottom:.4rem">⚠ Dispute Under Review</div>
+        <div style="font-size:.875rem;color:#b91c1c">Our team has been notified and will resolve this within 24 hours. Funds are locked until resolved.</div>
+      </div>
+      {% endif %}
+
+      <!-- Cancelled -->
+      {% if order.status == 'cancelled' %}
+      <div style="background:var(--gray-light);border-radius:10px;padding:1.25rem;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:.35rem">❌</div>
+        <div style="font-weight:700;color:var(--text-muted)">Order Cancelled</div>
+      </div>
+      {% endif %}
+
+      <!-- Order ref -->
+      <div style="background:var(--gray-light);border-radius:8px;padding:1rem;font-size:.8rem">
+        <div style="font-weight:700;margin-bottom:.4rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Order Info</div>
+        <div>Ref: <code style="font-size:.75rem">{{ order.payment_reference|default:"—" }}</code></div>
+        <div style="margin-top:.25rem">Brand: {{ order.brand.name }}</div>
+        {% if order.brand.whatsapp %}
+        <a href="https://wa.me/{{ order.brand.whatsapp }}?text=Hi, I have a question about Order %23{{ order.pk }}" target="_blank" style="display:inline-flex;align-items:center;gap:.35rem;margin-top:.75rem;color:#16a34a;font-weight:600;font-size:.85rem">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.554 4.118 1.523 5.854L.044 23.368l5.653-1.479A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.87 0-3.626-.5-5.147-1.376l-.369-.215-3.352.877.893-3.257-.239-.381A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+          WhatsApp Seller
+        </a>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}

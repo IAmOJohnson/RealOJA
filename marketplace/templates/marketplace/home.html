@@ -1,0 +1,399 @@
+{% extends 'marketplace/base.html' %}
+{% load home_tags static %}
+{% block title %}OJA — Your Campus Marketplace{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── HERO ── */
+.hero-v2 {
+  background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%);
+  min-height:88vh; display:flex; align-items:center; position:relative; overflow:hidden;
+}
+.hero-v2::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 30% 50%,rgba(212,175,55,.12) 0%,transparent 60%),
+             radial-gradient(ellipse at 70% 20%,rgba(212,175,55,.07) 0%,transparent 50%);
+}
+.hero-grid {
+  max-width:1280px; margin:0 auto; padding:0 1.5rem;
+  display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center;
+  position:relative; z-index:1;
+}
+@media(max-width:860px){ .hero-grid { grid-template-columns:1fr; text-align:center; } }
+.hero-eyebrow {
+  display:inline-flex; align-items:center; gap:.5rem;
+  background:rgba(212,175,55,.12); border:1px solid rgba(212,175,55,.3);
+  border-radius:20px; padding:.35rem 1rem; font-size:.78rem; font-weight:700;
+  color:var(--gold); letter-spacing:.06em; text-transform:uppercase; margin-bottom:1.5rem;
+}
+.hero-v2 h1 {
+  font-size:clamp(2.5rem,5vw,4rem); font-weight:900; color:#fff;
+  line-height:1.05; letter-spacing:-.03em; margin-bottom:1.25rem;
+}
+.hero-v2 h1 .accent { color:var(--gold); }
+.hero-v2 p { font-size:1.05rem; color:rgba(255,255,255,.55); line-height:1.75; max-width:480px; margin-bottom:2rem; }
+@media(max-width:860px){ .hero-v2 p { margin:0 auto 2rem; } }
+.hero-ctas { display:flex; gap:1rem; flex-wrap:wrap; }
+@media(max-width:860px){ .hero-ctas { justify-content:center; } }
+.hero-stat-row { display:flex; gap:2rem; margin-top:2.5rem; flex-wrap:wrap; }
+@media(max-width:860px){ .hero-stat-row { justify-content:center; } }
+.hero-stat { }
+.hero-stat-num { font-size:1.5rem; font-weight:900; color:#fff; line-height:1; }
+.hero-stat-label { font-size:.75rem; color:rgba(255,255,255,.4); margin-top:.15rem; }
+/* Hero right — floating cards */
+.hero-right { position:relative; display:flex; align-items:center; justify-content:center; }
+.hero-float-card {
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+  backdrop-filter:blur(12px); border-radius:14px; padding:1.1rem 1.4rem;
+  position:absolute; white-space:nowrap;
+  animation:floatY 3s ease-in-out infinite;
+}
+.hero-float-card.c1 { top:8%; left:0; animation-delay:0s; }
+.hero-float-card.c2 { bottom:15%; right:0; animation-delay:.8s; }
+.hero-float-card.c3 { top:45%; right:8%; animation-delay:1.6s; }
+@keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.hero-float-val { font-size:1.1rem; font-weight:800; color:#fff; }
+.hero-float-label { font-size:.72rem; color:rgba(255,255,255,.5); margin-top:.1rem; }
+.hero-logo-big {
+  width:220px; height:220px; object-fit:contain;
+  filter:drop-shadow(0 20px 60px rgba(212,175,55,.25));
+  animation:floatY 4s ease-in-out infinite;
+}
+@media(max-width:860px){ .hero-right { display:none; } }
+
+/* ── MARQUEE ── */
+.marquee-wrap {
+  background:var(--gold); overflow:hidden; padding:.6rem 0; white-space:nowrap;
+}
+.marquee-track {
+  display:inline-flex; gap:3rem;
+  animation:marquee 20s linear infinite;
+}
+.marquee-track span {
+  font-size:.8rem; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:.06em;
+}
+.marquee-dot { opacity:.5; }
+@keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+/* ── HOW IT WORKS ── */
+.hiw-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.5rem; }
+@media(max-width:860px){ .hiw-grid { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:480px){ .hiw-grid { grid-template-columns:1fr; } }
+.hiw-card {
+  text-align:center; padding:2rem 1.25rem;
+  background:#fff; border-radius:16px;
+  border:1px solid var(--border);
+  transition:box-shadow .2s, transform .2s;
+  position:relative;
+}
+.hiw-card:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,.08); }
+.hiw-card::before {
+  content:attr(data-step);
+  position:absolute; top:1rem; right:1rem;
+  font-size:.7rem; font-weight:800; color:var(--gold);
+  background:rgba(212,175,55,.1); padding:2px 8px; border-radius:20px;
+}
+.hiw-icon { font-size:2.5rem; margin-bottom:1rem; }
+.hiw-title { font-weight:800; font-size:.95rem; margin-bottom:.35rem; }
+.hiw-desc  { font-size:.8rem; color:var(--text-muted); line-height:1.6; }
+
+/* ── BRAND CARDS ── */
+.brand-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.25rem; }
+@media(max-width:900px){ .brand-grid { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:600px){ .brand-grid { grid-template-columns:repeat(2,1fr); } }
+.bc-card {
+  background:#fff; border-radius:14px; overflow:hidden;
+  border:1.5px solid var(--border);
+  transition:transform .2s, box-shadow .2s, border-color .2s;
+  text-decoration:none; color:inherit; display:block;
+}
+.bc-card:hover { transform:translateY(-5px); box-shadow:0 12px 32px rgba(0,0,0,.1); border-color:var(--gold); }
+.bc-img-wrap {
+  height:130px; background:linear-gradient(135deg,#f8f8f8,#fff);
+  display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden;
+}
+.bc-img-wrap img { width:80px; height:80px; object-fit:contain; }
+.bc-emoji { font-size:3rem; }
+.bc-verified {
+  position:absolute; top:.6rem; right:.6rem;
+  background:var(--gold); color:#fff; font-size:.67rem; font-weight:800;
+  padding:2px 8px; border-radius:20px; letter-spacing:.03em;
+}
+.bc-promoted {
+  position:absolute; top:.6rem; left:.6rem;
+  background:#1d4ed8; color:#fff; font-size:.67rem; font-weight:800;
+  padding:2px 8px; border-radius:20px;
+}
+.bc-body { padding:.875rem 1rem; }
+.bc-name { font-weight:800; font-size:.9rem; margin-bottom:.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bc-meta { font-size:.75rem; color:var(--text-muted); }
+.bc-follow-btn {
+  display:flex; align-items:center; justify-content:center; gap:.35rem;
+  width:100%; margin-top:.6rem; padding:.4rem;
+  border:1.5px solid var(--border); border-radius:8px;
+  background:none; cursor:pointer; font-size:.78rem; font-weight:600;
+  font-family:inherit; color:var(--gray-dark);
+  transition:border-color .15s, background .15s, color .15s;
+}
+.bc-follow-btn:hover { border-color:var(--gold); color:var(--gold); background:rgba(212,175,55,.06); }
+
+/* ── SECTION HEADERS ── */
+.sh-wrap { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:2rem; gap:1rem; flex-wrap:wrap; }
+.sh-eyebrow { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--gold); margin-bottom:.4rem; }
+.sh-title { font-size:1.75rem; font-weight:900; color:var(--gray-dark); letter-spacing:-.02em; line-height:1; }
+
+/* ── CTA BANNER ── */
+.cta-banner {
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  border-radius:20px; padding:3rem; display:grid;
+  grid-template-columns:1fr auto; gap:2rem; align-items:center;
+  position:relative; overflow:hidden;
+}
+@media(max-width:640px){ .cta-banner { grid-template-columns:1fr; text-align:center; } }
+.cta-banner::before {
+  content:''; position:absolute; top:-40px; right:-40px; width:200px; height:200px;
+  background:radial-gradient(circle,rgba(212,175,55,.15),transparent 70%); pointer-events:none;
+}
+.cta-banner h2 { font-size:1.75rem; font-weight:900; color:#fff; letter-spacing:-.02em; margin-bottom:.5rem; }
+.cta-banner p { color:rgba(255,255,255,.5); font-size:.9rem; }
+.cta-banner-btns { display:flex; gap:.75rem; flex-wrap:wrap; }
+@media(max-width:640px){ .cta-banner-btns { justify-content:center; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── HERO ── -->
+<section class="hero-v2">
+  <div class="hero-grid">
+    <div>
+      <div class="hero-eyebrow">✦ Campus Marketplace</div>
+      <h1>Shop Smarter.<br><span class="accent">Get It Delivered</span><br>to Your Hostel.</h1>
+      <p>Buy from multiple campus vendors in one order. We collect everything at our Hub and deliver it all in a single OJA bag — straight to your door.</p>
+      <div class="hero-ctas">
+        <a href="{% url 'brands' %}" class="btn-gold" style="padding:.875rem 2rem;font-size:1rem;font-weight:800">Shop Now →</a>
+        {% if not user.is_authenticated %}
+        <a href="{% url 'signup' %}?type=seller" class="btn-outline" style="padding:.875rem 2rem;font-size:1rem;color:#fff;border-color:rgba(255,255,255,.25)">Start Selling</a>
+        {% endif %}
+      </div>
+      <div class="hero-stat-row">
+        <div class="hero-stat"><div class="hero-stat-num">500+</div><div class="hero-stat-label">Campus Vendors</div></div>
+        <div class="hero-stat" style="border-left:1px solid rgba(255,255,255,.1);padding-left:2rem"><div class="hero-stat-num">1 Bag</div><div class="hero-stat-label">One Delivery</div></div>
+        <div class="hero-stat" style="border-left:1px solid rgba(255,255,255,.1);padding-left:2rem"><div class="hero-stat-num">100%</div><div class="hero-stat-label">Escrow Safe</div></div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <img src="{% static 'img/oja_logo.png' %}" alt="OJA" class="hero-logo-big">
+      <div class="hero-float-card c1">
+        <div class="hero-float-val">✓ Verified</div>
+        <div class="hero-float-label">Your money is safe</div>
+        </div>
+      </div>
+      <div class="hero-float-card c2">
+        <div class="hero-float-val">🛵 One Bag</div>
+        <div class="hero-float-label">All vendors, one drop</div>
+      </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── MARQUEE ── -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span>Campus Delivery</span><span class="marquee-dot">·</span>
+    <span>Escrow Protected</span><span class="marquee-dot">·</span>
+    <span>Verified Sellers</span><span class="marquee-dot">·</span>
+    <span></span><span class="marquee-dot">·</span>
+    <span>Paystack Secured</span><span class="marquee-dot">·</span>
+    <span>Verified Stores</span><span class="marquee-dot">·</span>
+    <span>Campus Delivery</span><span class="marquee-dot">·</span>
+    <span>Escrow Protected</span><span class="marquee-dot">·</span>
+    <span>Verified Sellers</span><span class="marquee-dot">·</span>
+    <span></span><span class="marquee-dot">·</span>
+    <span>Paystack Secured</span><span class="marquee-dot">·</span>
+    <span></span><span class="marquee-dot">·</span>
+  </div>
+</div>
+
+
+
+
+<!-- ── FEATURED BRANDS ── -->
+<section style="padding:5rem 0">
+  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem">
+    <div class="sh-wrap">
+      <div>
+        <div class="sh-eyebrow">Featured Brands</div>
+        <div class="sh-title">Trusted Campus Sellers</div>
+      </div>
+      <a href="{% url 'brands' %}" class="btn-outline">View All Brands →</a>
+    </div>
+
+    {% if brands %}
+    <div class="brand-grid">
+      {% for brand in brands|slice:":8" %}
+      <a href="{% url 'brand_detail' brand.id %}" class="bc-card">
+        <div class="bc-img-wrap">
+          {% if brand.logo %}<img src="{{ brand.logo.url }}" alt="{{ brand.name }}">
+          {% else %}<span class="bc-emoji">🏪</span>{% endif %}
+          {% if brand.is_verified %}<span class="bc-verified">✓ Verified</span>{% endif %}
+          {% if brand.is_promoted %}<span class="bc-promoted">⭐ Pro</span>{% endif %}
+        </div>
+        <div class="bc-body">
+          <div class="bc-name">{{ brand.name }}</div>
+          <div class="bc-meta">{{ brand.product_count }} product{{ brand.product_count|pluralize }} · {{ brand.follower_count }} follower{{ brand.follower_count|pluralize }}</div>
+          {% if user.is_authenticated and user.user_type == 'customer' %}
+          <form method="post" action="{% url 'follow_brand' brand.id %}" onclick="event.stopPropagation()">
+            {% csrf_token %}
+            <button type="submit" class="bc-follow-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              Follow
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🏪</div>
+      <p>No brands yet. <a href="{% url 'signup' %}?type=seller" class="text-gold">Be the first seller!</a></p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ── LATEST PRODUCTS ── -->
+{% if featured_products %}
+<section style="background:#fafafa;padding:5rem 0;border-top:1px solid var(--border)">
+  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem">
+    <div class="sh-wrap">
+      <div>
+        <div class="sh-eyebrow">Latest Products</div>
+        <div class="sh-title">Fresh Arrivals</div>
+      </div>
+      <a href="{% url 'deals' %}" class="btn-outline">View Deals →</a>
+    </div>
+    <div class="grid-4">
+      {% for p in featured_products %}
+      <a href="{% url 'product_detail' p.id %}" style="text-decoration:none;color:inherit;display:block">
+        <div class="pc-card">
+          <div class="pc-img-wrap">
+            {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" class="pc-img">
+            {% else %}<div class="pc-img-placeholder">📦</div>{% endif %}
+            {% if p.original_price and p.original_price > p.price %}<span class="pc-badge-discount">-{{ p.discount }}% OFF</span>{% endif %}
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'toggle_wishlist' p.id %}" onclick="event.stopPropagation()">{% csrf_token %}
+              <button type="submit" class="pc-wl-btn {% if p.id in wishlist_ids %}pc-wl-active{% endif %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="{% if p.id in wishlist_ids %}#ef4444{% else %}none{% endif %}" stroke="{% if p.id in wishlist_ids %}#ef4444{% else %}#9ca3af{% endif %}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+          <div class="pc-body">
+            <div class="pc-brand">{{ p.brand.name }}</div>
+            <div class="pc-name">{{ p.name }}</div>
+            {% if p.average_rating %}<div class="pc-rating"><span class="pc-stars">{% for i in "12345" %}{% if forloop.counter <= p.average_rating %}★{% else %}☆{% endif %}{% endfor %}</span><span class="pc-rating-count">({{ p.review_count }})</span></div>{% endif %}
+            <div class="pc-price-row">
+              <span class="pc-price">₦{{ p.price|floatformat:0 }}</span>
+              {% if p.original_price and p.original_price > p.price %}
+                <span class="pc-orig-price">₦{{ p.original_price|floatformat:0 }}</span>
+                <span class="pc-savings">Save ₦{{ p.original_price|subtract:p.price|floatformat:0 }}</span>
+              {% endif %}
+            </div>
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'add_to_cart' p.id %}" onclick="event.stopPropagation()">{% csrf_token %}
+              <button type="submit" class="pc-cart-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.99-1.61L23 6H6"/></svg>
+                Add to Cart
+              </button>
+            </form>
+            {% else %}
+            <a href="{% url 'login' %}?next={% url 'product_detail' p.id %}" class="pc-cart-btn" onclick="event.stopPropagation()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.99-1.61L23 6H6"/></svg>
+              Add to Cart
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ── SELLER / BUYER CTA BANNER ── -->
+{% if not user.is_authenticated %}
+<section style="padding:5rem 0">
+  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem">
+    <div class="cta-banner">
+      <div>
+        <h2>Ready to start selling on OJA?</h2>
+        <p>Reach thousands of students. Get verified. Earn with escrow protection.</p>
+      </div>
+      <div class="cta-banner-btns">
+        <a href="{% url 'signup' %}?type=seller" class="btn-gold" style="padding:.875rem 2rem;font-size:.95rem;font-weight:800">Start Selling →</a>
+        <a href="{% url 'signup' %}" class="btn-outline" style="padding:.875rem 2rem;font-size:.95rem;color:#fff;border-color:rgba(255,255,255,.25)">Shop as Buyer</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ── HOW IT WORKS ── -->
+<section style="background:#fafafa;padding:5rem 0;border-bottom:1px solid var(--border)">
+  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem">
+    <div class="sh-wrap" style="justify-content:center;text-align:center;flex-direction:column;align-items:center">
+      <div class="sh-eyebrow">How It Works</div>
+      <div class="sh-title">One checkout. One delivery.</div>
+    </div>
+    <div class="hiw-grid">
+      <div class="hiw-card" data-step="01">
+        <div class="hiw-icon">🛒</div>
+        <div class="hiw-title">Add to Cart</div>
+        <div class="hiw-desc">Shop from multiple vendors in one session — fashion, food, books, anything.</div>
+      </div>
+      <div class="hiw-card" data-step="02">
+        <div class="hiw-icon">💳</div>
+        <div class="hiw-title">Pay Securely</div>
+        <div class="hiw-desc">Your money is held in escrow via Paystack. Vendors only get paid after you confirm delivery.</div>
+      </div>
+      <div class="hiw-card" data-step="03">
+        <div class="hiw-icon">📦</div>
+        <div class="hiw-title">Hub Consolidates</div>
+        <div class="hiw-desc">All vendors drop their items at the OJA Hub. We pack everything into one OJA-branded bag.</div>
+      </div>
+      <div class="hiw-card" data-step="04">
+        <div class="hiw-icon">🛵</div>
+        <div class="hiw-title">Hostel Delivery</div>
+        <div class="hiw-desc">One rider. One bag. Delivered straight to your hostel, block, or gate.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% block extra_scripts %}
+<script>
+// Animate cards on scroll
+var observer = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){
+      e.target.style.opacity='1';
+      e.target.style.transform='translateY(0)';
+    }
+  });
+},{threshold:.1});
+
+document.querySelectorAll('.bc-card,.pc-card,.hiw-card').forEach(function(el,i){
+  el.style.cssText='opacity:0;transform:translateY(24px);transition:opacity .5s '+( i*0.07)+'s,transform .5s '+(i*0.07)+'s';
+  observer.observe(el);
+});
+</script>
+{% endblock %}
+
+{% endblock %}

@@ -1,0 +1,239 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}{{ product.name }} — OJA{% endblock %}
+
+{% block extra_head %}
+<style>
+.pd-thumb {
+  width:72px; height:72px; object-fit:cover; border-radius:6px;
+  border:2px solid var(--border); cursor:pointer; flex-shrink:0;
+  transition:border-color .15s;
+}
+.pd-thumb:hover { border-color:var(--gold); }
+.pd-thumb-active { border-color:var(--gold) !important; }
+.pd-thumb-video {
+  width:72px; height:72px; border-radius:6px; background:#1e293b;
+  border:2px solid var(--border); cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  transition:border-color .15s;
+}
+.pd-thumb-video:hover { border-color:var(--gold); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="section">
+  <div class="container">
+    <a href="javascript:history.back()" class="text-muted" style="font-size:.9rem;display:inline-block;margin-bottom:1.5rem">← Back</a>
+
+    <div class="product-detail-layout">
+      <!-- Gallery -->
+      <div>
+        <!-- Main viewer -->
+        <div style="position:relative;aspect-ratio:1;background:#f5f5f5;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+          {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" id="pdMainImg" style="width:100%;height:100%;object-fit:cover">
+          {% else %}
+            <div style="font-size:6rem">📦</div>
+          {% endif %}
+          <!-- Discount badge -->
+          {% if product.discount %}
+            <span style="position:absolute;top:.75rem;right:.75rem;background:#ef4444;color:#fff;font-size:.8rem;font-weight:700;padding:.25rem .65rem;border-radius:6px">-{{ product.discount }}% OFF</span>
+          {% endif %}
+        </div>
+
+        <!-- Thumbnails strip -->
+        {% if images or videos %}
+        <div style="display:flex;gap:.5rem;margin-top:.75rem;overflow-x:auto;padding-bottom:.25rem">
+          {% if product.image %}
+          <img src="{{ product.image.url }}" class="pd-thumb pd-thumb-active" onclick="setMain('img','{{ product.image.url }}')" alt="main">
+          {% endif %}
+          {% for img in images %}
+          <img src="{{ img.image.url }}" class="pd-thumb" onclick="setMain('img','{{ img.image.url }}')" alt="img{{ forloop.counter }}">
+          {% endfor %}
+          {% for vid in videos %}
+          <div class="pd-thumb pd-thumb-video" onclick="setMain('video','{{ vid.video.url }}')" title="Play video">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Video player (hidden until selected) -->
+        <video id="pdVideoPlayer" controls style="display:none;width:100%;border-radius:12px;margin-top:.75rem;background:#000" preload="metadata"></video>
+      </div>
+
+      <!-- Info -->
+      <div>
+        <a href="{% url 'brand_detail' product.brand.id %}" class="text-muted" style="font-size:.9rem">{{ product.brand.name }}</a>
+        <h1 style="font-size:1.75rem;font-weight:800;margin:.5rem 0">{{ product.name }}</h1>
+
+        <!-- Rating -->
+        {% if product.review_count %}
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
+          <span class="stars">{% for i in "12345" %}{% if forloop.counter <= product.average_rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+          <span class="text-muted" style="font-size:.9rem">({{ product.review_count }} review{{ product.review_count|pluralize }})</span>
+        </div>
+        {% endif %}
+
+        <!-- Price -->
+        <div style="margin-bottom:1.5rem">
+          <span class="product-detail-price">₦{{ product.price|floatformat:0 }}</span>
+          {% if product.original_price != product.price %}
+            <span style="font-size:1rem;color:var(--text-muted);text-decoration:line-through;margin-left:.5rem">₦{{ product.original_price|floatformat:0 }}</span>
+            {% if product.discount %}
+              <span class="badge-pill" style="margin-left:.5rem;background:#ef4444;color:#fff">-{{ product.discount }}% OFF</span>
+            {% endif %}
+            <div style="font-size:.85rem;color:#16a34a;font-weight:600;margin-top:.25rem">✓ You save ₦{{ product.original_price|floatformat:0 }}</div>
+          {% endif %}
+        </div>
+
+        {% if product.description %}
+        <p style="color:var(--text-muted);margin-bottom:1.5rem;line-height:1.7">{{ product.description }}</p>
+        {% endif %}
+
+        <!-- Stock -->
+        {% if product.stock > 0 %}
+          <div class="badge-pill badge-green" style="margin-bottom:1rem;display:inline-block">✓ In Stock ({{ product.stock }} left)</div>
+        {% else %}
+          <div class="badge-pill" style="margin-bottom:1rem;display:inline-block;background:#fee2e2;color:var(--danger)">Out of Stock</div>
+        {% endif %}
+
+        <!-- Add to cart -->
+        {% if user.is_authenticated %}
+          {% if product.stock > 0 %}
+          <form method="post" action="{% url 'add_to_cart' product.id %}" style="margin-bottom:1rem">
+            {% csrf_token %}
+            <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem">
+              <label style="font-weight:600;font-size:.9rem">Qty:</label>
+              <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" class="input-field" style="width:80px">
+            </div>
+            <button type="submit" class="btn-gold w-full" style="justify-content:center">🛒 Add to Cart</button>
+          </form>
+          {% endif %}
+          <form method="post" action="{% url 'toggle_wishlist' product.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-outline w-full" style="justify-content:center">
+              {% if is_in_wishlist %}♥ Remove from Wishlist{% else %}♡ Add to Wishlist{% endif %}
+            </button>
+          </form>
+        {% else %}
+          <a href="{% url 'login' %}?next={{ request.path }}" class="btn-gold w-full" style="display:flex;justify-content:center">Login to Purchase</a>
+        {% endif %}
+
+        <!-- Features -->
+        <div style="margin-top:1.5rem;display:flex;flex-direction:column;gap:.75rem">
+          <div style="display:flex;gap:.75rem;align-items:center;font-size:.9rem;color:var(--text-muted)">
+            🚚 {{ product.shipping_info }}
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:center;font-size:.9rem;color:var(--text-muted)">
+            🛡️ {{ product.warranty }}
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:center;font-size:.9rem;color:var(--text-muted)">
+            🔄 {{ product.return_policy }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Specifications -->
+    {% if specs %}
+    <div style="margin-top:3rem">
+      <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1rem">Specifications</h2>
+      <div class="table-wrap">
+        <table>
+          {% for spec in specs %}
+          <tr>
+            <th style="width:40%">{{ spec.key }}</th>
+            <td>{{ spec.value }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Reviews -->
+    <div style="margin-top:3rem">
+      <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1.5rem">
+        Reviews ({{ product.review_count }})
+      </h2>
+
+      {% if user.is_authenticated and not user_review %}
+      <div class="card card-body" style="margin-bottom:2rem">
+        <h3 style="font-weight:600;margin-bottom:1rem">Write a Review</h3>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_review">
+          <div class="form-group">
+            <label>Rating</label>
+            {{ review_form.rating }}
+          </div>
+          <div class="form-group">
+            <label>Your Review</label>
+            {{ review_form.text }}
+          </div>
+          <button type="submit" class="btn-gold">Submit Review</button>
+        </form>
+      </div>
+      {% endif %}
+
+      {% for review in reviews %}
+      <div style="padding:1.25rem 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+          <strong>{{ review.author.first_name|default:review.author.username }}</strong>
+          <span class="text-muted" style="font-size:.85rem">{{ review.created_at|date:"N j, Y" }}</span>
+        </div>
+        <div class="stars" style="margin-bottom:.5rem">
+          {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+        </div>
+        <p style="color:var(--text-muted)">{{ review.text }}</p>
+      </div>
+      {% empty %}
+      <p class="text-muted">No reviews yet. Be the first to review this product!</p>
+      {% endfor %}
+    </div>
+
+    <!-- Related products -->
+    {% if related_products %}
+    <div style="margin-top:3rem">
+      <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1.5rem">More from {{ product.brand.name }}</h2>
+      <div class="grid-4">
+        {% for p in related_products %}
+        <a href="{% url 'product_detail' p.id %}" class="card product-card" style="display:block;text-decoration:none;color:inherit">
+          {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" class="product-card-img">
+          {% else %}<div class="product-card-img-placeholder">📦</div>{% endif %}
+          <div class="card-body">
+            <div class="product-name">{{ p.name }}</div>
+            <div class="product-price">₦{{ p.price|floatformat:0 }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% block extra_scripts %}
+<script>
+var mainImg   = document.getElementById('pdMainImg');
+var videoEl   = document.getElementById('pdVideoPlayer');
+var allThumbs = document.querySelectorAll('.pd-thumb, .pd-thumb-video');
+
+function setMain(type, url) {
+  // Reset active
+  allThumbs.forEach(function(t){ t.classList.remove('pd-thumb-active'); });
+  event.currentTarget.classList.add('pd-thumb-active');
+
+  if(type === 'img') {
+    videoEl.pause();
+    videoEl.style.display = 'none';
+    if(mainImg) { mainImg.src = url; mainImg.style.display = 'block'; }
+  } else {
+    if(mainImg) mainImg.style.display = 'none';
+    videoEl.src = url;
+    videoEl.style.display = 'block';
+    videoEl.play();
+  }
+}
+</script>
+{% endblock %}
+{% endblock %}

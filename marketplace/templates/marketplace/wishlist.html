@@ -1,0 +1,43 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}Wishlist — OJA{% endblock %}
+{% block content %}
+<div class="section">
+  <div class="container">
+    <h1 class="section-title mb-4">Wishlist ({{ wishlist_items|length }})</h1>
+    {% if wishlist_items %}
+    <div class="grid-4">
+      {% for item in wishlist_items %}
+      <div class="card product-card">
+        <a href="{% url 'product_detail' item.product.id %}">
+          {% if item.product.image %}<img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="product-card-img">
+          {% else %}<div class="product-card-img-placeholder">📦</div>{% endif %}
+        </a>
+        <div class="card-body">
+          <div class="product-name">{{ item.product.name }}</div>
+          <div class="product-brand">{{ item.product.brand.name }}</div>
+          <div class="product-price">₦{{ item.product.price|floatformat:0 }}</div>
+          <div style="display:flex;gap:.5rem;margin-top:.75rem">
+            <form method="post" action="{% url 'add_to_cart' item.product.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-gold" style="padding:.4rem .8rem;font-size:.85rem">Add to Cart</button>
+            </form>
+            <form method="post" action="{% url 'toggle_wishlist' item.product.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-outline" style="padding:.4rem .8rem;font-size:.85rem">Remove</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">♡</div>
+      <h3>Your wishlist is empty</h3>
+      <p class="text-muted">Save products you love for later.</p>
+      <a href="{% url 'brands' %}" class="btn-gold" style="display:inline-flex;margin-top:1.5rem">Browse Brands →</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

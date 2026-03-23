@@ -1,0 +1,69 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}Categories — OJA{% endblock %}
+
+{% block extra_head %}
+<style>
+.cat-hero { background:linear-gradient(135deg,#0f172a,#1e293b); padding:3.5rem 0 2.5rem; }
+.cat-hero h1 { font-size:2.25rem; font-weight:900; color:#fff; letter-spacing:-.03em; margin-bottom:.4rem; }
+.cat-hero p { color:rgba(255,255,255,.5); }
+.cat-wrap { max-width:1280px; margin:0 auto; padding:2.5rem 1.5rem 4rem; }
+.cat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.25rem; }
+@media(max-width:900px){ .cat-grid { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:560px){ .cat-grid { grid-template-columns:repeat(2,1fr); } }
+.cat-card {
+  background:#fff; border:1.5px solid var(--border); border-radius:16px; padding:2rem 1.25rem;
+  text-align:center; text-decoration:none; color:inherit; display:block;
+  transition:transform .2s, box-shadow .2s, border-color .2s;
+  position:relative; overflow:hidden;
+}
+.cat-card::before {
+  content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(212,175,55,.06),transparent);
+  opacity:0; transition:opacity .2s;
+}
+.cat-card:hover { transform:translateY(-5px); box-shadow:0 14px 36px rgba(0,0,0,.1); border-color:var(--gold); }
+.cat-card:hover::before { opacity:1; }
+.cat-icon { font-size:2.75rem; margin-bottom:1rem; display:block; }
+.cat-name { font-weight:800; font-size:1rem; margin-bottom:.3rem; }
+.cat-count { font-size:.8rem; color:var(--text-muted); }
+.cat-arrow { font-size:.75rem; font-weight:700; color:var(--gold); margin-top:.75rem; opacity:0; transition:opacity .15s; }
+.cat-card:hover .cat-arrow { opacity:1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cat-hero">
+  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem">
+    <h1>Shop by Category</h1>
+    <p>Pick a category to browse verified campus sellers</p>
+  </div>
+</div>
+
+<div class="cat-wrap">
+  {% if categories %}
+  <div class="cat-grid">
+    {% for cat in categories %}
+    <a href="{% url 'brands' %}?category={{ cat.slug }}" class="cat-card">
+      <span class="cat-icon">{{ cat.icon|default:"📦" }}</span>
+      <div class="cat-name">{{ cat.name }}</div>
+      <div class="cat-count">{{ cat.products.count }} product{{ cat.products.count|pluralize }}</div>
+      <div class="cat-arrow">Browse brands →</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">📂</div><p>No categories yet.</p></div>
+  {% endif %}
+</div>
+
+<script>
+var obs = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){ e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; }
+  });
+},{threshold:.1});
+document.querySelectorAll('.cat-card').forEach(function(el,i){
+  el.style.cssText='opacity:0;transform:translateY(20px);transition:opacity .4s '+(i*0.06)+'s,transform .4s '+(i*0.06)+'s,box-shadow .2s,border-color .2s';
+  obs.observe(el);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends 'marketplace/base.html' %}
+{% load home_tags %}
+{% block title %}Deals — OJA{% endblock %}
+
+{% block extra_head %}
+<style>
+.deals-hero { background:linear-gradient(135deg,#7f1d1d,#b91c1c); padding:3.5rem 0 2.5rem; position:relative; overflow:hidden; }
+.deals-hero::before { content:''; position:absolute; top:-60px; right:-60px; width:240px; height:240px; background:rgba(255,255,255,.06); border-radius:50%; pointer-events:none; }
+.deals-hero h1 { font-size:2.25rem; font-weight:900; color:#fff; letter-spacing:-.03em; margin-bottom:.4rem; }
+.deals-hero p  { color:rgba(255,255,255,.65); }
+.deals-ticker  { background:#ef4444; padding:.5rem 0; overflow:hidden; white-space:nowrap; }
+.dt-track { display:inline-flex; gap:2.5rem; animation:marquee 18s linear infinite; }
+.dt-track span { font-size:.78rem; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:.06em; }
+@keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+.deals-filter { background:#fff; border-bottom:1px solid var(--border); position:sticky; top:68px; z-index:80; padding:.75rem 0; }
+.deals-filter-inner { max-width:1280px; margin:0 auto; padding:0 1.5rem; display:flex; align-items:center; gap:.875rem; flex-wrap:wrap; }
+.df-group { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+.df-label { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); flex-shrink:0; }
+.df-btn { padding:.33rem .8rem; border-radius:20px; border:1.5px solid var(--border); background:#fff; font-size:.78rem; font-weight:600; cursor:pointer; font-family:inherit; color:var(--gray-dark); transition:all .15s; text-decoration:none; white-space:nowrap; }
+.df-btn:hover, .df-btn.active { background:#ef4444; color:#fff; border-color:#ef4444; }
+.df-divider { width:1px; height:24px; background:var(--border); flex-shrink:0; }
+.df-right { margin-left:auto; display:flex; align-items:center; gap:.5rem; }
+.df-sort { padding:.38rem .85rem; border:1.5px solid var(--border); border-radius:8px; font-size:.8rem; font-family:inherit; outline:none; cursor:pointer; }
+
+.deals-wrap { max-width:1280px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+.deals-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.25rem; }
+@media(max-width:900px){ .deals-grid { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:600px){ .deals-grid { grid-template-columns:repeat(2,1fr); } }
+
+.deal-card { background:#fff; border:1.5px solid var(--border); border-radius:14px; overflow:hidden; text-decoration:none; color:inherit; display:flex; flex-direction:column; transition:transform .2s, box-shadow .2s; }
+.deal-card:hover { transform:translateY(-5px); box-shadow:0 14px 36px rgba(0,0,0,.1); }
+.deal-img { height:180px; background:#f5f5f5; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.deal-img img { width:100%; height:100%; object-fit:cover; transition:transform .3s; }
+.deal-card:hover .deal-img img { transform:scale(1.05); }
+.deal-ph  { font-size:4rem; }
+.deal-badge { position:absolute; top:.6rem; left:.6rem; background:#ef4444; color:#fff; font-size:.78rem; font-weight:800; padding:.28rem .7rem; border-radius:8px; }
+.deal-body  { padding:.875rem 1rem; flex:1; display:flex; flex-direction:column; }
+.deal-brand { font-size:.72rem; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.2rem; }
+.deal-name  { font-weight:700; font-size:.875rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:.6rem; flex:1; line-height:1.4; }
+.deal-prices { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; margin-bottom:.6rem; }
+.deal-price { font-size:1.1rem; font-weight:900; color:var(--gold); }
+.deal-orig  { font-size:.8rem; color:var(--text-muted); text-decoration:line-through; }
+.deal-save  { font-size:.7rem; font-weight:700; color:#15803d; background:#dcfce7; padding:1px 6px; border-radius:4px; }
+.deal-timer { font-size:.75rem; color:#ef4444; font-weight:600; margin-bottom:.65rem; }
+.deal-btn { width:100%; background:var(--gold); color:#fff; border:none; padding:.575rem; border-radius:8px; font-weight:700; font-size:.85rem; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:.4rem; transition:background .2s; text-decoration:none; }
+.deal-btn:hover { background:var(--gold-dark); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="deals-hero">
+  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem">
+    <h1>🔥 Hot Deals</h1>
+    <p>{{ total_deals }} deal{{ total_deals|pluralize }} live right now — refreshed daily</p>
+  </div>
+</div>
+
+<div class="deals-ticker">
+  <div class="dt-track">
+    <span>🔥 Up to 70% Off</span><span>·</span><span>New Deals Daily</span><span>·</span>
+    <span>Verified Sellers</span><span>·</span><span>Escrow Protected</span><span>·</span>
+    <span>Campus Delivery</span><span>·</span><span>One OJA Bag</span><span>·</span>
+    <span>🔥 Up to 70% Off</span><span>·</span><span>New Deals Daily</span><span>·</span>
+    <span>Verified Sellers</span><span>·</span><span>Escrow Protected</span><span>·</span>
+    <span>Campus Delivery</span><span>·</span><span>One OJA Bag</span><span>·</span>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="deals-filter">
+  <div class="deals-filter-inner">
+
+    {% if categories %}
+    <div class="df-group">
+      <span class="df-label">Category</span>
+      <a href="{% url 'deals' %}?sort={{ sort_by }}&min_discount={{ min_disc }}" class="df-btn {% if not active_cat %}active{% endif %}">All</a>
+      {% for cat in categories %}
+      <a href="{% url 'deals' %}?category={{ cat.slug }}&sort={{ sort_by }}&min_discount={{ min_disc }}" class="df-btn {% if active_cat == cat.slug %}active{% endif %}">{{ cat.name }}</a>
+      {% endfor %}
+    </div>
+    <div class="df-divider"></div>
+    {% endif %}
+
+    <div class="df-group">
+      <span class="df-label">Min Off</span>
+      <a href="{% url 'deals' %}?category={{ active_cat }}&sort={{ sort_by }}" class="df-btn {% if not min_disc %}active{% endif %}">Any</a>
+      <a href="{% url 'deals' %}?category={{ active_cat }}&sort={{ sort_by }}&min_discount=10" class="df-btn {% if min_disc == '10' %}active{% endif %}">10%+</a>
+      <a href="{% url 'deals' %}?category={{ active_cat }}&sort={{ sort_by }}&min_discount=20" class="df-btn {% if min_disc == '20' %}active{% endif %}">20%+</a>
+      <a href="{% url 'deals' %}?category={{ active_cat }}&sort={{ sort_by }}&min_discount=30" class="df-btn {% if min_disc == '30' %}active{% endif %}">30%+</a>
+      <a href="{% url 'deals' %}?category={{ active_cat }}&sort={{ sort_by }}&min_discount=50" class="df-btn {% if min_disc == '50' %}active{% endif %}">50%+</a>
+      <a href="{% url 'deals' %}?category={{ active_cat }}&sort={{ sort_by }}&min_discount=70" class="df-btn {% if min_disc == '70' %}active{% endif %}">70%+</a>
+    </div>
+
+    <div class="df-right">
+      <select class="df-sort" onchange="window.location='{% url 'deals' %}?category={{ active_cat }}&min_discount={{ min_disc }}&sort='+this.value">
+        <option value="discount"   {% if sort_by == 'discount'   %}selected{% endif %}>Biggest Discount</option>
+        <option value="price_low"  {% if sort_by == 'price_low'  %}selected{% endif %}>Price: Low → High</option>
+        <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Price: High → Low</option>
+        <option value="newest"     {% if sort_by == 'newest'     %}selected{% endif %}>Newest</option>
+      </select>
+      <span style="font-size:.8rem;color:var(--text-muted);white-space:nowrap">{{ total_deals }} result{{ total_deals|pluralize }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="deals-wrap">
+  {% if products %}
+  <div class="deals-grid">
+    {% for p in products %}
+    <a href="{% url 'product_detail' p.id %}" class="deal-card">
+      <div class="deal-img">
+        {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}">
+        {% else %}<div class="deal-ph">📦</div>{% endif %}
+        <span class="deal-badge">-{{ p.discount }}%</span>
+      </div>
+      <div class="deal-body">
+        <div class="deal-brand">{{ p.brand.name }}</div>
+        <div class="deal-name">{{ p.name }}</div>
+        <div class="deal-prices">
+          <span class="deal-price">₦{{ p.price|floatformat:0 }}</span>
+          <span class="deal-orig">₦{{ p.original_price|floatformat:0 }}</span>
+          <span class="deal-save">Save ₦{{ p.original_price|subtract:p.price|floatformat:0 }}</span>
+        </div>
+        {% if p.deal_ends_at %}<div class="deal-timer">⏳ Ends {{ p.deal_ends_at|date:"N j, Y" }}</div>{% endif %}
+        {% if user.is_authenticated %}
+        <form method="post" action="{% url 'add_to_cart' p.id %}" onclick="event.stopPropagation()">{% csrf_token %}
+          <button type="submit" class="deal-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.99-1.61L23 6H6"/></svg>
+            Add to Cart
+          </button>
+        </form>
+        {% else %}
+        <a href="{% url 'login' %}?next={% url 'product_detail' p.id %}" class="deal-btn" onclick="event.stopPropagation()">Login to Buy</a>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🏷️</div>
+    <p>No deals match your filters.</p>
+    <a href="{% url 'deals' %}" class="btn-gold" style="margin-top:1rem;display:inline-flex">Clear Filters</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+var obs = new IntersectionObserver(function(e){ e.forEach(function(x){ if(x.isIntersecting){ x.target.style.opacity='1'; x.target.style.transform='translateY(0)'; } }); },{threshold:.08});
+document.querySelectorAll('.deal-card').forEach(function(el,i){
+  el.style.cssText='opacity:0;transform:translateY(18px);transition:opacity .4s '+(i*.05)+'s,transform .4s '+(i*.05)+'s,box-shadow .2s';
+  obs.observe(el);
+});
+</script>
+{% endblock %}

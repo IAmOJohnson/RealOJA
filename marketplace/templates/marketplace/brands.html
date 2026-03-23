@@ -1,0 +1,134 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}Brands — OJA{% endblock %}
+
+{% block extra_head %}
+<style>
+.brands-hero { background:linear-gradient(135deg,#0f172a,#1e293b); padding:3.5rem 0 2.5rem; }
+.brands-hero h1 { font-size:2.25rem; font-weight:900; color:#fff; letter-spacing:-.03em; margin-bottom:.4rem; }
+.brands-hero p  { color:rgba(255,255,255,.5); }
+
+.filter-bar { background:#fff; border-bottom:1px solid var(--border); position:sticky; top:68px; z-index:80; padding:.75rem 0; }
+.filter-inner { max-width:1280px; margin:0 auto; padding:0 1.5rem; display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; }
+.filter-search { position:relative; flex:1; min-width:180px; max-width:300px; }
+.filter-search input { width:100%; padding:.5rem 1rem .5rem 2.3rem; border:1.5px solid var(--border); border-radius:8px; font-size:.875rem; font-family:inherit; outline:none; }
+.filter-search input:focus { border-color:var(--gold); }
+.filter-search svg { position:absolute; left:.7rem; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none; }
+.filter-cats { display:flex; gap:.4rem; flex-wrap:wrap; }
+.fcat { padding:.38rem .85rem; border-radius:20px; border:1.5px solid var(--border); background:#fff; font-size:.78rem; font-weight:600; cursor:pointer; font-family:inherit; color:var(--gray-dark); transition:all .15s; white-space:nowrap; text-decoration:none; }
+.fcat:hover, .fcat.active { background:var(--gold); color:#fff; border-color:var(--gold); }
+.filter-right { margin-left:auto; display:flex; gap:.5rem; align-items:center; }
+.sort-sel { padding:.4rem .85rem; border:1.5px solid var(--border); border-radius:8px; font-size:.8rem; font-family:inherit; outline:none; cursor:pointer; }
+
+.brands-wrap { max-width:1280px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+.bg4 { display:grid; grid-template-columns:repeat(4,1fr); gap:1.25rem; }
+@media(max-width:900px){ .bg4 { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:600px){ .bg4 { grid-template-columns:repeat(2,1fr); } }
+
+.brd-card { background:#fff; border:1.5px solid var(--border); border-radius:14px; overflow:hidden; text-decoration:none; color:inherit; display:flex; flex-direction:column; transition:transform .2s, box-shadow .2s, border-color .2s; }
+.brd-card:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,.1); border-color:rgba(212,175,55,.45); }
+.brd-img { height:120px; background:linear-gradient(135deg,#f5f5f5,#fff); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.brd-img img  { width:72px; height:72px; object-fit:contain; }
+.brd-emoji    { font-size:3rem; }
+.brd-featured { position:absolute; top:0; left:0; right:0; background:var(--gold); color:#fff; font-size:.62rem; font-weight:800; text-align:center; padding:2px 0; letter-spacing:.06em; }
+.brd-body { padding:.875rem 1rem; flex:1; display:flex; flex-direction:column; gap:.2rem; }
+.brd-name { font-weight:800; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:.35rem; }
+.brd-location { font-size:.75rem; color:var(--text-muted); }
+.brd-meta { font-size:.75rem; color:var(--text-muted); }
+.brd-footer { padding:.7rem 1rem; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.brd-visit { font-size:.78rem; font-weight:700; color:var(--gold); background:rgba(212,175,55,.08); border:1px solid rgba(212,175,55,.25); padding:.28rem .8rem; border-radius:6px; }
+.verified-gold { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; flex-shrink:0; }
+.verified-gold svg { width:17px; height:17px; }
+.sec-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--gold); margin-bottom:.875rem; padding-bottom:.5rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="brands-hero">
+  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem">
+    <h1>{{ brands|length }} Brand{{ brands|length|pluralize }} on OJA</h1>
+    <p>Featured and verified sellers appear first</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <div class="filter-inner">
+    <div class="filter-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="brandSearch" placeholder="Search brands…" value="{{ query }}" oninput="filterBrands(this.value)">
+    </div>
+
+    <div class="filter-cats">
+      <a href="{% url 'brands' %}{% if query %}?q={{ query }}{% endif %}" class="fcat {% if not active_cat %}active{% endif %}">All</a>
+      {% for cat in categories %}
+      <a href="{% url 'brands' %}?category={{ cat.slug }}{% if query %}&q={{ query }}{% endif %}" class="fcat {% if active_cat == cat.slug %}active{% endif %}">{{ cat.name }}</a>
+      {% endfor %}
+    </div>
+
+    <div class="filter-right">
+      <span style="font-size:.8rem;color:var(--text-muted);white-space:nowrap">{{ brands|length }} result{{ brands|length|pluralize }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="brands-wrap">
+  {% if brands %}
+
+  <!-- Featured (promoted) brands first -->
+  {% with featured_list=brands %}
+  {% if featured_list %}
+  <div class="sec-label">
+    <span>⭐ Featured &amp; Verified</span>
+  </div>
+  <div class="bg4" id="brandsGrid">
+    {% for brand in brands %}
+    <a href="{% url 'brand_detail' brand.id %}" class="brd-card brand-item" data-name="{{ brand.name|lower }}">
+      <div class="brd-img">
+        {% if brand.is_promoted %}<div class="brd-featured">⭐ FEATURED</div>{% endif %}
+        {% if brand.logo %}<img src="{{ brand.logo.url }}" alt="{{ brand.name }}">
+        {% else %}<span class="brd-emoji">🏪</span>{% endif %}
+      </div>
+      <div class="brd-body">
+        <div class="brd-name">
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis">{{ brand.name }}</span>
+          {% if brand.is_verified %}
+          <span class="verified-gold" title="Verified Seller">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#D4AF37"/><path d="M7 12.5l3.5 3.5 6.5-7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          {% endif %}
+        </div>
+        {% if brand.location %}<div class="brd-location">📍 {{ brand.location }}</div>{% endif %}
+        <div class="brd-meta">{{ brand.product_count }} product{{ brand.product_count|pluralize }}</div>
+      </div>
+      <div class="brd-footer">
+        <span style="font-size:.75rem;color:var(--text-muted)">👥 {{ brand.follower_count }}</span>
+        <span class="brd-visit">Visit →</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🏪</div>
+    <p>No brands found{% if query %} for "{{ query }}"{% endif %}.</p>
+    <a href="{% url 'brands' %}" class="btn-gold" style="margin-top:1rem;display:inline-flex">Clear filters</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function filterBrands(q){
+  q = q.toLowerCase();
+  document.querySelectorAll('.brand-item').forEach(function(el){
+    el.style.display = el.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+var obs = new IntersectionObserver(function(e){ e.forEach(function(x){ if(x.isIntersecting){ x.target.style.opacity='1'; x.target.style.transform='translateY(0)'; } }); },{threshold:.08});
+document.querySelectorAll('.brd-card').forEach(function(el,i){
+  el.style.cssText='opacity:0;transform:translateY(18px);transition:opacity .4s '+(i*.05)+'s,transform .4s '+(i*.05)+'s,box-shadow .2s,border-color .2s';
+  obs.observe(el);
+});
+</script>
+{% endblock %}

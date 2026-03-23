@@ -1,0 +1,128 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}Notifications — OJA{% endblock %}
+
+{% block extra_head %}
+<style>
+.notif-page-wrap { max-width:760px; margin:0 auto; padding:2.5rem 1.5rem 4rem; }
+.notif-page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+.notif-page-header h1 { font-size:1.75rem; font-weight:900; letter-spacing:-.02em; }
+
+/* Filter tabs */
+.notif-tabs { display:flex; gap:.4rem; background:var(--gray-light); border-radius:10px; padding:.3rem; margin-bottom:1.5rem; }
+.notif-tab { flex:1; padding:.5rem 1rem; border-radius:8px; border:none; background:none; font-size:.8rem; font-weight:600; cursor:pointer; font-family:inherit; color:var(--text-muted); transition:all .15s; text-align:center; }
+.notif-tab.active { background:#fff; color:var(--gray-dark); box-shadow:0 1px 4px rgba(0,0,0,.1); }
+
+/* Notification item */
+.npi { display:flex; align-items:flex-start; gap:1rem; padding:1.1rem 1.25rem; border-radius:12px; margin-bottom:.6rem; background:#fff; border:1.5px solid var(--border); transition:box-shadow .2s, border-color .15s; position:relative; }
+.npi:hover { box-shadow:0 4px 16px rgba(0,0,0,.07); border-color:rgba(212,175,55,.25); }
+.npi.unread { border-left:3px solid var(--gold); background:rgba(212,175,55,.04); }
+.npi.unread::before { content:''; position:absolute; top:.9rem; right:1rem; width:8px; height:8px; background:var(--gold); border-radius:50%; }
+.npi-icon { width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.15rem; flex-shrink:0; }
+.npi-icon.escrow   { background:#fef9c3; }
+.npi-icon.sale     { background:#dcfce7; }
+.npi-icon.system   { background:#e0e7ff; }
+.npi-icon.verification { background:#dbeafe; }
+.npi-icon.fraud    { background:#fee2e2; }
+.npi-icon.offer    { background:#fce7f3; }
+.npi-icon.default  { background:var(--gray-light); }
+.npi-content { flex:1; min-width:0; }
+.npi-title { font-weight:700; font-size:.9rem; margin-bottom:.2rem; color:var(--gray-dark); }
+.npi-body  { font-size:.835rem; color:var(--text-muted); line-height:1.5; }
+.npi-meta  { font-size:.72rem; color:var(--text-muted); margin-top:.35rem; display:flex; align-items:center; gap:.5rem; }
+.npi-dot   { width:3px; height:3px; border-radius:50%; background:var(--border); }
+.npi-actions { display:flex; flex-direction:column; gap:.3rem; flex-shrink:0; }
+.npi-read-btn { padding:.3rem .75rem; border-radius:6px; border:1px solid var(--border); background:#fff; font-size:.72rem; font-weight:600; cursor:pointer; font-family:inherit; color:var(--gray-dark); white-space:nowrap; transition:all .15s; }
+.npi-read-btn:hover { border-color:var(--gold); color:var(--gold); }
+.npi-del-btn { padding:.3rem .75rem; border-radius:6px; border:1px solid #fca5a5; background:#fff; font-size:.72rem; font-weight:600; cursor:pointer; font-family:inherit; color:#ef4444; transition:all .15s; }
+.npi-del-btn:hover { background:#fee2e2; }
+
+/* Empty */
+.notif-empty { text-align:center; padding:4rem 2rem; }
+.notif-empty .icon { font-size:3.5rem; margin-bottom:1rem; }
+.notif-empty h3 { font-weight:700; margin-bottom:.4rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="background:linear-gradient(135deg,#0f172a,#1e293b);padding:3rem 0 2.5rem">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem">
+    <h1 style="font-size:2rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:.3rem">Notifications</h1>
+    <p style="color:rgba(255,255,255,.5)">
+      {% with total=notifications|length unread=notifications|length %}{{ total }} notification{{ total|pluralize }}{% endwith %}
+    </p>
+  </div>
+</div>
+
+<div class="notif-page-wrap">
+
+  <!-- Filter tabs -->
+  <div class="notif-tabs">
+    <button class="notif-tab active" onclick="filterNotifs('all',this)">All</button>
+    <button class="notif-tab" onclick="filterNotifs('unread',this)">Unread</button>
+    <button class="notif-tab" onclick="filterNotifs('escrow',this)">🔒 Escrow</button>
+    <button class="notif-tab" onclick="filterNotifs('sale',this)">💰 Orders</button>
+    <button class="notif-tab" onclick="filterNotifs('system',this)">📦 Hub</button>
+  </div>
+
+  {% if notifications %}
+  <div id="notifList">
+    {% for notif in notifications %}
+    <div class="npi {% if not notif.is_read %}unread{% endif %}" data-type="{{ notif.notification_type }}">
+      <div class="npi-icon {{ notif.notification_type|default:'default' }}">
+        {% if notif.notification_type == 'escrow' %}🔒
+        {% elif notif.notification_type == 'sale' %}💰
+        {% elif notif.notification_type == 'verification' %}✅
+        {% elif notif.notification_type == 'system' %}📦
+        {% elif notif.notification_type == 'fraud' %}🚨
+        {% elif notif.notification_type == 'offer' %}🎁
+        {% elif notif.notification_type == 'withdrawal' %}🏦
+        {% else %}🔔{% endif %}
+      </div>
+      <div class="npi-content">
+        <div class="npi-title">{{ notif.title }}</div>
+        <div class="npi-body">{{ notif.message }}</div>
+        <div class="npi-meta">
+          <span>{{ notif.created_at|date:"N j, Y · g:i A" }}</span>
+          {% if not notif.is_read %}<span class="npi-dot"></span><span style="color:var(--gold);font-weight:600">New</span>{% endif %}
+        </div>
+      </div>
+      <div class="npi-actions">
+        {% if not notif.is_read %}
+        <form method="post" action="{% url 'mark_notification_read' notif.id %}">{% csrf_token %}
+          <button type="submit" class="npi-read-btn">✓ Read</button>
+        </form>
+        {% endif %}
+        <form method="post" action="{% url 'delete_notification' notif.id %}">{% csrf_token %}
+          <button type="submit" class="npi-del-btn">✕</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="notif-empty">
+    <div class="icon">🔔</div>
+    <h3>All caught up!</h3>
+    <p style="color:var(--text-muted)">No notifications yet. Your order updates and alerts will appear here.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function filterNotifs(type, btn){
+  document.querySelectorAll('.notif-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.npi').forEach(function(el){
+    if(type === 'all') el.style.display = '';
+    else if(type === 'unread') el.style.display = el.classList.contains('unread') ? '' : 'none';
+    else el.style.display = el.dataset.type === type ? '' : 'none';
+  });
+}
+
+// Slide-in animation
+document.querySelectorAll('.npi').forEach(function(el,i){
+  el.style.cssText += ';opacity:0;transform:translateX(-12px);transition:opacity .35s '+(i*.05)+'s,transform .35s '+(i*.05)+'s';
+  setTimeout(function(){ el.style.opacity='1'; el.style.transform='translateX(0)'; }, 50+i*50);
+});
+</script>
+{% endblock %}

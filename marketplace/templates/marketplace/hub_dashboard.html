@@ -1,0 +1,314 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}OJA Hub Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  .hub-wrap  { max-width:1280px; margin:0 auto; padding:5.5rem 1.5rem 3rem; }
+  /* Header */
+  .hub-header { background:linear-gradient(135deg,#0f172a,#1e293b); border-radius:16px; padding:2rem; color:#fff; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+  .hub-title  { font-size:1.5rem; font-weight:900; letter-spacing:-.02em; }
+  .hub-sub    { color:rgba(255,255,255,.5); font-size:.875rem; margin-top:.25rem; }
+  /* Stats */
+  .hub-stats  { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+  @media(max-width:700px){ .hub-stats { grid-template-columns:repeat(2,1fr); } }
+  .hub-stat   { border-radius:12px; padding:1.25rem; color:#fff; position:relative; overflow:hidden; }
+  .hub-stat::after { content:''; position:absolute; top:-20px; right:-20px; width:80px; height:80px; background:rgba(255,255,255,.07); border-radius:50%; }
+  .hub-stat-val   { font-size:2rem; font-weight:900; line-height:1; }
+  .hub-stat-label { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; opacity:.7; margin-top:.3rem; }
+  .hs-pending  { background:linear-gradient(135deg,#92400e,#78350f); }
+  .hs-transit  { background:linear-gradient(135deg,#1d4ed8,#1e40af); }
+  .hs-hub      { background:linear-gradient(135deg,#15803d,#14532d); }
+  .hs-ready    { background:linear-gradient(135deg,#D4AF37,#C69C2E); }
+  /* Scan bar */
+  .scan-bar { background:#fff; border:2px solid var(--border); border-radius:14px; padding:1.5rem; margin-bottom:1.5rem; }
+  .scan-bar form { display:flex; gap:.75rem; }
+  .scan-bar input { flex:1; font-size:1.1rem; font-weight:600; letter-spacing:.08em; }
+  .scan-result { margin-top:1rem; border-radius:10px; padding:1.25rem; }
+  .scan-found    { background:#dcfce7; border:1.5px solid #86efac; }
+  .scan-notfound { background:#fee2e2; border:1.5px solid #fca5a5; }
+  /* Master order cards */
+  .master-card { background:#fff; border:1.5px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:1.25rem; }
+  .master-head { padding:1.25rem 1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem; border-bottom:1px solid var(--border); }
+  .master-ref  { font-weight:800; font-size:1rem; font-family:monospace; color:var(--gray-dark); }
+  .master-buyer { font-size:.875rem; color:var(--text-muted); }
+  .master-body { padding:1.25rem 1.5rem; }
+  /* Hub status badges */
+  .hs-badge { font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+  .hs-pending_vendor  { background:#fef9c3; color:#92400e; }
+  .hs-in_transit      { background:#dbeafe; color:#1d4ed8; }
+  .hs-received        { background:#dcfce7; color:#15803d; }
+  .hs-packaged        { background:#e0e7ff; color:#4338ca; }
+  /* Master status */
+  .ms-awaiting        { background:#fef9c3; color:#92400e; }
+  .ms-ready           { background:#dcfce7; color:#15803d; border:1.5px solid #86efac; }
+  .ms-packaged        { background:#e0e7ff; color:#4338ca; }
+  .ms-dispatched      { background:#dbeafe; color:#1d4ed8; }
+  /* Sub-order rows */
+  .sub-row { display:flex; align-items:center; gap:1rem; padding:.875rem 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .sub-row:last-child { border-bottom:none; }
+  .sub-vendor { font-weight:700; font-size:.875rem; min-width:140px; }
+  .sub-items  { font-size:.8rem; color:var(--text-muted); flex:1; }
+  .sub-actions { display:flex; gap:.4rem; flex-wrap:wrap; }
+  /* Progress bar */
+  .hub-progress { background:var(--border); border-radius:20px; height:8px; overflow:hidden; margin:.5rem 0; }
+  .hub-progress-fill { height:100%; background:var(--gold); border-radius:20px; transition:width .4s ease; }
+  /* Action buttons */
+  .btn-hub-sm { padding:.35rem .85rem; border:none; border-radius:6px; font-size:.78rem; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity .15s; }
+  .btn-hub-sm:hover { opacity:.8; }
+  .btn-transit  { background:#dbeafe; color:#1d4ed8; }
+  .btn-receive  { background:#dcfce7; color:#15803d; }
+  .btn-pack     { background:var(--gold); color:#fff; }
+  .btn-dispatch { background:#1e293b; color:#fff; }
+  /* Bin badge */
+  .bin-badge { background:#1e293b; color:var(--gold); font-size:.8rem; font-weight:800; padding:.3rem .8rem; border-radius:8px; font-family:monospace; letter-spacing:.06em; }
+  /* Flow diagram */
+  .flow { display:flex; align-items:center; gap:0; overflow-x:auto; padding:1rem 0; margin-bottom:1.5rem; }
+  .flow-step { text-align:center; flex-shrink:0; }
+  .flow-dot  { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; margin:0 auto .4rem; border:2px solid var(--border); background:#fff; }
+  .flow-dot.done   { background:var(--gold); border-color:var(--gold); }
+  .flow-dot.active { background:#1e293b; border-color:#1e293b; }
+  .flow-label { font-size:.72rem; font-weight:600; color:var(--text-muted); white-space:nowrap; }
+  .flow-arrow { color:var(--border); font-size:1.25rem; margin:0 .25rem; flex-shrink:0; margin-bottom:1.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hub-wrap">
+
+  <!-- Header -->
+  <div class="hub-header">
+    <div>
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.3rem">
+        <span style="font-size:1.75rem">📦</span>
+        <div class="hub-title">OJA Hub Dashboard</div>
+      </div>
+      <div class="hub-sub">Cross-Docking Operations Centre · Consolidated Shipping</div>
+    </div>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <a href="{% url 'admin_profile' %}" class="btn-outline" style="color:#fff;border-color:rgba(255,255,255,.3)">← Admin Panel</a>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="hub-stats">
+    <div class="hub-stat hs-pending">
+      <div class="hub-stat-val">{{ pending_arrivals }}</div>
+      <div class="hub-stat-label">⏳ Pending Pickup</div>
+    </div>
+    <div class="hub-stat hs-transit">
+      <div class="hub-stat-val">{{ in_transit }}</div>
+      <div class="hub-stat-label">🚚 In Transit to Hub</div>
+    </div>
+    <div class="hub-stat hs-hub">
+      <div class="hub-stat-val">{{ at_hub }}</div>
+      <div class="hub-stat-label">✓ Received at Hub</div>
+    </div>
+    <div class="hub-stat hs-ready">
+      <div class="hub-stat-val">{{ ready_to_pack }}</div>
+      <div class="hub-stat-label">📦 Ready to Pack</div>
+    </div>
+  </div>
+
+  <!-- Cross-docking flow diagram -->
+  <div class="card card-body" style="margin-bottom:1.5rem;padding:1.25rem 1.5rem">
+    <div style="font-weight:700;font-size:.875rem;margin-bottom:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Cross-Docking Flow</div>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-dot done">🛒</div><div class="flow-label">Buyer Orders</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-dot done">💳</div><div class="flow-label">Escrow Payment</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-dot active">🏪</div><div class="flow-label">Vendors Pack</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-dot">🚚</div><div class="flow-label">Drop at Hub</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-dot">📬</div><div class="flow-label">Hub Checks In</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-dot">🎁</div><div class="flow-label">Pack One Bag</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-dot">🛵</div><div class="flow-label">Rider Delivers</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-dot">✅</div><div class="flow-label">Buyer Confirms</div></div>
+    </div>
+  </div>
+
+  <!-- Package Scanner -->
+  <div class="scan-bar">
+    <div style="font-weight:800;font-size:1rem;margin-bottom:.875rem">
+      🔍 Scan / Search Package
+    </div>
+    <form method="get">
+      <input type="text" name="scan" value="{{ scan_query }}" class="input-field"
+        placeholder="Enter Package ID, Sub-Order # or scan barcode…" autofocus>
+      <button type="submit" class="btn-gold" style="padding:.7rem 1.5rem;white-space:nowrap">Scan</button>
+      {% if scan_query %}<a href="{% url 'hub_dashboard' %}" class="btn-outline" style="padding:.7rem 1rem">Clear</a>{% endif %}
+    </form>
+
+    {% if scan_result %}
+      {% if scan_result.found %}
+      <div class="scan-result scan-found">
+        <div style="font-weight:800;color:#15803d;font-size:1rem;margin-bottom:.75rem">✅ Package Found!</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div>
+            <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#15803d;margin-bottom:.25rem">Sub-Order</div>
+            <div style="font-weight:800;font-size:1.1rem">#{{ scan_result.sub_order.pk }}</div>
+            <div style="font-size:.875rem;color:var(--text-muted)">{{ scan_result.sub_order.brand.name }}</div>
+            <div style="margin-top:.35rem"><span class="hs-badge hs-{{ scan_result.sub_order.hub_status|cut:'_' }}">{{ scan_result.sub_order.get_hub_status_display }}</span></div>
+          </div>
+          {% if scan_result.master %}
+          <div>
+            <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#15803d;margin-bottom:.25rem">Master Order → Bin</div>
+            <div style="font-weight:800;font-size:1.1rem;font-family:monospace">{{ scan_result.master.payment_reference|truncatechars:18 }}</div>
+            <div style="font-size:.875rem;color:var(--text-muted)">Buyer: {{ scan_result.master.buyer.first_name|default:scan_result.master.buyer.username }}</div>
+            {% if scan_result.master.hub_bin %}
+            <div style="margin-top:.35rem"><span class="bin-badge">{{ scan_result.master.hub_bin }}</span></div>
+            {% else %}
+            <div style="font-size:.8rem;color:var(--text-muted);margin-top:.35rem">No bin assigned yet</div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% if scan_result.sub_order.hub_status != 'received_at_hub' %}
+        <form method="post" style="margin-top:1rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="mark_received">
+          <input type="hidden" name="order_id" value="{{ scan_result.sub_order.pk }}">
+          <input type="text" name="scan_id" value="{{ scan_query }}" placeholder="Package ID to record" class="input-field" style="max-width:220px">
+          <button type="submit" class="btn-gold" style="padding:.6rem 1.25rem">✓ Check In at Hub</button>
+        </form>
+        {% else %}
+        <div style="margin-top:.75rem;font-weight:700;color:#15803d">✓ Already checked in at hub</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="scan-result scan-notfound">
+        <div style="font-weight:700;color:#b91c1c">❌ Not Found</div>
+        <div style="font-size:.875rem;color:#b91c1c;margin-top:.25rem">No package found matching "{{ scan_result.query }}"</div>
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- Active Master Orders -->
+  <div style="font-weight:800;font-size:1.1rem;margin-bottom:1rem">Active Deliveries</div>
+
+  {% if active_masters %}
+  {% for master in active_masters %}
+  <div class="master-card">
+    <div class="master-head">
+      <div>
+        <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+          <span class="master-ref">{{ master.payment_reference|truncatechars:20 }}</span>
+          {% if master.hub_bin %}<span class="bin-badge">{{ master.hub_bin }}</span>{% endif %}
+          <!-- Master status badge -->
+          <span class="hs-badge
+            {% if master.status == 'ready_for_packaging' %}ms-ready
+            {% elif master.status == 'packaged' %}ms-packaged
+            {% elif master.status == 'out_for_delivery' %}ms-dispatched
+            {% else %}ms-awaiting{% endif %}">
+            {% if master.status == 'ready_for_packaging' %}🎁 READY TO PACK
+            {% elif master.status == 'packaged' %}📦 PACKAGED
+            {% elif master.status == 'out_for_delivery' %}🛵 OUT FOR DELIVERY
+            {% else %}⏳ AWAITING ARRIVALS{% endif %}
+          </span>
+        </div>
+        <div class="master-buyer" style="margin-top:.3rem">
+          👤 {{ master.buyer.first_name|default:master.buyer.username }} · {{ master.buyer.email }}
+          {% if master.delivery_zone %} · 🛵 {{ master.delivery_zone.name }}{% endif %}
+        </div>
+      </div>
+      <!-- Progress -->
+      <div style="min-width:180px">
+        <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);margin-bottom:.3rem">
+          {{ master.arrived_count }}/{{ master.total_sub_orders }} items at hub
+        </div>
+        <div class="hub-progress">
+          <div class="hub-progress-fill" style="width:{% if master.total_sub_orders %}{% widthratio master.arrived_count master.total_sub_orders 100 %}{% else %}0{% endif %}%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="master-body">
+      <!-- Sub-orders -->
+      {% for sub in master.orders.all %}
+      <div class="sub-row">
+        <div style="min-width:32px;height:32px;border-radius:8px;background:var(--gray-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏪</div>
+        <div class="sub-vendor">{{ sub.brand.name }}</div>
+        <div class="sub-items">
+          {% for item in sub.items.all %}{{ item.product_name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+          <div style="margin-top:.2rem">
+            <span class="hs-badge hs-{% if sub.hub_status == 'pending_vendor_shipment' %}pending_vendor{% elif sub.hub_status == 'in_transit_to_hub' %}in_transit{% elif sub.hub_status == 'received_at_hub' %}received{% else %}packaged{% endif %}">
+              {{ sub.get_hub_status_display }}
+            </span>
+            {% if sub.package_scan_id %}<code style="font-size:.72rem;color:var(--text-muted);margin-left:.4rem">{{ sub.package_scan_id }}</code>{% endif %}
+          </div>
+        </div>
+        <div style="font-weight:700;font-size:.875rem;white-space:nowrap">₦{{ sub.subtotal|floatformat:0 }}</div>
+        <!-- Actions per sub-order -->
+        <div class="sub-actions">
+          {% if sub.hub_status == 'pending_vendor_shipment' %}
+          <form method="post">{% csrf_token %}
+            <input type="hidden" name="action" value="mark_in_transit">
+            <input type="hidden" name="order_id" value="{{ sub.pk }}">
+            <button type="submit" class="btn-hub-sm btn-transit">🚚 In Transit</button>
+          </form>
+          {% endif %}
+          {% if sub.hub_status == 'in_transit_to_hub' or sub.hub_status == 'pending_vendor_shipment' %}
+          <form method="post" style="display:flex;gap:.3rem;align-items:center">{% csrf_token %}
+            <input type="hidden" name="action" value="mark_received">
+            <input type="hidden" name="order_id" value="{{ sub.pk }}">
+            <input type="text" name="scan_id" placeholder="Scan ID" class="input-field" style="width:110px;padding:.3rem .6rem;font-size:.78rem">
+            <button type="submit" class="btn-hub-sm btn-receive">✓ Received</button>
+          </form>
+          {% elif sub.hub_status == 'received_at_hub' %}
+          <span style="color:#15803d;font-size:.8rem;font-weight:700">✓ At Hub{% if sub.hub_received_at %} · {{ sub.hub_received_at|date:"g:i A" }}{% endif %}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Master-level actions -->
+      <div style="display:flex;gap:.75rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center">
+
+        {% if master.status == 'ready_for_packaging' %}
+        <form method="post" style="display:flex;gap:.5rem;align-items:center">{% csrf_token %}
+          <input type="hidden" name="action" value="mark_packaged">
+          <input type="hidden" name="master_id" value="{{ master.pk }}">
+          <button type="submit" class="btn-hub-sm btn-pack" style="padding:.5rem 1.25rem;font-size:.875rem">🎁 Pack into One Bag</button>
+        </form>
+        {% endif %}
+
+        {% if master.status == 'packaged' %}
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="mark_dispatched">
+          <input type="hidden" name="master_id" value="{{ master.pk }}">
+          <button type="submit" class="btn-hub-sm btn-dispatch" style="padding:.5rem 1.25rem;font-size:.875rem">🛵 Dispatch Rider</button>
+        </form>
+        {% endif %}
+
+        <!-- Assign / edit bin label -->
+        <form method="post" style="display:flex;gap:.35rem;align-items:center">{% csrf_token %}
+          <input type="hidden" name="action" value="assign_bin">
+          <input type="hidden" name="master_id" value="{{ master.pk }}">
+          <input type="text" name="bin_label" value="{{ master.hub_bin }}" placeholder="BIN-001" class="input-field" style="width:100px;padding:.35rem .6rem;font-size:.8rem;font-family:monospace;font-weight:700">
+          <button type="submit" class="btn-hub-sm" style="background:var(--gray-light);color:var(--gray-dark)">Set Bin</button>
+        </form>
+
+        <div style="margin-left:auto;font-size:.8rem;color:var(--text-muted)">
+          Grand Total: <strong>₦{{ master.grand_total|floatformat:0 }}</strong> ·
+          Created {{ master.created_at|date:"N j · g:i A" }}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📦</div>
+    <h3>No active deliveries</h3>
+    <p class="text-muted">Active master orders will appear here once payment is confirmed.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

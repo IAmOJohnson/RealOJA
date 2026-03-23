@@ -1,0 +1,422 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}{{ brand.name }} — OJA{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Sticky Top Bar ── */
+  .bd-sticky-bar {
+    position: fixed;
+    top: 64px;
+    left: 0; right: 0;
+    z-index: 90;
+    background: #fff;
+    border-bottom: 1px solid rgba(245,245,245,.6);
+    transform: translateY(-100%);
+    opacity: 0;
+    transition: transform .3s ease, opacity .3s ease;
+    pointer-events: none;
+  }
+  .bd-sticky-bar.visible { transform: translateY(0); opacity: 1; pointer-events: all; }
+  .bd-sticky-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
+    height: 64px; display: flex; align-items: center; gap: 1rem;
+  }
+  .bd-sticky-logo {
+    width: 48px; height: 48px; background: var(--gold); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; overflow: hidden; flex-shrink: 0;
+  }
+  .bd-sticky-logo img { width: 100%; height: 100%; object-fit: contain; }
+  .bd-sticky-name { font-weight: 700; font-size: 1.2rem; color: var(--gray-dark); }
+  .bd-follow-pill {
+    margin-left: auto; font-size: .75rem; font-weight: 700;
+    padding: .4rem 1.5rem; border-radius: 9999px; cursor: pointer;
+    border: 1.5px solid var(--gold); color: var(--gold); background: transparent;
+    transition: background .2s, color .2s; font-family: inherit; letter-spacing: .04em;
+  }
+  .bd-follow-pill.following { background: var(--gold); color: #fff; }
+  .bd-follow-pill:hover { background: var(--gold); color: #fff; }
+
+  /* ── Hero ── */
+  .bd-hero {
+    position: relative; height: 450px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    overflow: hidden; background: linear-gradient(to top, rgba(0,0,0,.6), #f0f0f0);
+    transition: opacity .1s linear; margin-top: 64px;
+  }
+  .bd-hero-bg {
+    position: absolute; inset: 0; opacity: .2; pointer-events: none;
+    object-fit: cover; width: 100%; height: 100%;
+  }
+  .bd-hero-bg-emoji {
+    position: absolute; inset: 0; opacity: .15; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 320px; line-height: 1;
+  }
+  .bd-hero-content {
+    position: relative; z-index: 10;
+    max-width: 1200px; width: 100%;
+    margin: 0 auto; padding: 0 1.5rem 3rem;
+  }
+  .bd-verified {
+    display: flex; align-items: center; gap: .4rem;
+    color: #fff; font-size: .875rem; font-weight: 500; margin-bottom: .5rem;
+  }
+  .bd-hero-name {
+    font-size: clamp(3rem, 8vw, 5.5rem); font-weight: 900;
+    color: var(--gray-dark); line-height: 1; letter-spacing: -.04em; margin-bottom: 1.5rem;
+  }
+  .bd-hero-meta {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 1.5rem; color: rgba(255,255,255,.9); font-weight: 500; font-size: .95rem;
+  }
+  .bd-hero-meta-item { display: flex; align-items: center; gap: .35rem; }
+
+  /* ── Action Bar ── */
+  .bd-actions {
+    max-width: 1200px; margin: 0 auto;
+    padding: 2rem 1.5rem 0;
+    display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+  }
+  .bd-heart-btn {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--gold); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(212,175,55,.4);
+    transition: transform .2s; flex-shrink: 0;
+  }
+  .bd-heart-btn:hover { transform: scale(1.08); }
+  .bd-heart-btn svg { width: 24px; height: 24px; color: #fff; }
+  .bd-heart-btn.active svg { fill: #fff; }
+  .bd-share-btn {
+    background: none; border: none; cursor: pointer;
+    color: #9ca3af; padding: .25rem; transition: color .2s;
+    display: flex; align-items: center;
+  }
+  .bd-share-btn:hover { color: #555; }
+  .bd-share-btn svg { width: 28px; height: 28px; }
+  .bd-wa-btn {
+    padding: .5rem 1.5rem;
+    border: 2px solid #16a34a; color: #16a34a; background: transparent;
+    border-radius: 9999px; font-weight: 700; font-size: .9rem; cursor: pointer;
+    display: flex; align-items: center; gap: .5rem;
+    transition: background .2s, color .2s; font-family: inherit; text-decoration: none;
+  }
+  .bd-wa-btn:hover { background: #16a34a; color: #fff; }
+  .bd-wa-btn-off {
+    padding: .5rem 1.5rem; border: 2px solid #d1d5db;
+    color: #9ca3af; background: transparent; border-radius: 9999px;
+    font-weight: 700; font-size: .9rem; opacity: .5;
+    cursor: not-allowed; font-family: inherit;
+  }
+
+  /* ── Description ── */
+  .bd-description { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 0; }
+  .bd-description p { color: #6b7280; font-size: 1.05rem; line-height: 1.75; max-width: 720px; }
+
+  /* ── Tabs ── */
+  .bd-tabs-wrap { max-width: 1200px; margin: 2rem auto 0; padding: 0 1.5rem; }
+  .bd-tabs-sticky {
+    position: sticky; top: 64px; z-index: 40;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    transition: top .3s;
+  }
+  .bd-tabs-list {
+    display: flex; gap: 2rem;
+    border-bottom: 1px solid rgba(245,245,245,.5);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .bd-tabs-list::-webkit-scrollbar { display: none; }
+  .bd-tab-btn {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; padding: 1rem 0; font-size: 1rem; font-weight: 700;
+    color: rgba(51,51,51,.5); cursor: pointer; white-space: nowrap;
+    text-transform: capitalize; font-family: inherit;
+    transition: color .15s, border-color .15s; letter-spacing: .01em;
+  }
+  .bd-tab-btn:hover { color: var(--gold); }
+  .bd-tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* ── Products Grid ── */
+  .bd-products { max-width: 1200px; margin: 3rem auto 0; padding: 0 1.5rem 5rem; }
+  .bd-product-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem;
+  }
+  @media (max-width: 1100px) { .bd-product-grid { grid-template-columns: repeat(3,1fr); } }
+  @media (max-width: 768px)  { .bd-product-grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 480px)  { .bd-product-grid { grid-template-columns: 1fr; } }
+
+  /* ── Product Card ── */
+  .pc-card {
+    background: #fff; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08); cursor: pointer;
+    display: flex; flex-direction: column; height: 100%;
+    transition: transform .2s, box-shadow .2s;
+    text-decoration: none; color: inherit;
+  }
+  .pc-card:hover { transform: scale(1.04); box-shadow: 0 8px 24px rgba(0,0,0,.13); }
+  .pc-img-wrap {
+    position: relative; height: 192px;
+    background: linear-gradient(135deg,#f5f5f5,#fff);
+    overflow: hidden; display: flex; align-items: center;
+    justify-content: center; font-size: 3.5rem;
+  }
+  .pc-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .pc-discount-badge {
+    position: absolute; top: .5rem; right: .5rem;
+    background: #ef4444; color: #fff; font-size: .8rem; font-weight: 600;
+    padding: .2rem .5rem; border-radius: 6px;
+  }
+  .pc-wl-btn {
+    position: absolute; top: .5rem; left: .5rem;
+    width: 34px; height: 34px; background: #fff; border: none;
+    border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background .2s;
+  }
+  .pc-wl-btn:hover { background: #fff0f0; }
+  .pc-wl-btn svg { width: 18px; height: 18px; color: #9ca3af; }
+  .pc-wl-btn.wishlisted svg { color: #ef4444; fill: #ef4444; }
+  .pc-body { padding: 1rem; display: flex; flex-direction: column; flex: 1; }
+  .pc-name {
+    font-weight: 700; font-size: .875rem; color: var(--gray-dark);
+    margin-bottom: .5rem; display: -webkit-box;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .pc-price-row { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+  .pc-price { font-size: 1.1rem; font-weight: 700; color: var(--gold); }
+  .pc-orig { font-size: .875rem; color: rgba(51,51,51,.45); text-decoration: line-through; }
+  .pc-cart-btn {
+    margin-top: auto; width: 100%;
+    background: var(--gold); color: #fff; border: none;
+    padding: .4rem 1rem; border-radius: 8px;
+    font-weight: 600; font-size: .875rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: .4rem;
+    transition: background .2s; font-family: inherit; text-decoration: none;
+  }
+  .pc-cart-btn:hover { background: var(--gold-dark); }
+
+  .bd-empty { text-align: center; padding: 5rem 0; color: #9ca3af; grid-column: 1/-1; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# 1. Sticky bar #}
+<div class="bd-sticky-bar" id="bdStickyBar">
+  <div class="bd-sticky-inner">
+    <div class="bd-sticky-logo">
+      {% if brand.logo %}<img src="{{ brand.logo.url }}" alt="{{ brand.name }}">{% else %}🏪{% endif %}
+    </div>
+    <span class="bd-sticky-name">{{ brand.name }}</span>
+    {% if user.is_authenticated and user.user_type == 'customer' %}
+    {% if user.is_authenticated and user.user_type == 'customer' %}
+    <button class="bd-follow-pill {% if is_followed %}following{% endif %}" id="stickyFollowBtn" style="margin-left:auto" onclick="ajaxFollow()">
+      <span id="stickyFollowTxt">{% if is_followed %}FOLLOWING{% else %}FOLLOW{% endif %}</span>
+    </button>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{# 2. Hero #}
+<div class="bd-hero" id="bdHero">
+  {% if brand.logo %}
+    <img src="{{ brand.logo.url }}" alt="" class="bd-hero-bg">
+  {% else %}
+    <div class="bd-hero-bg-emoji">🏪</div>
+  {% endif %}
+
+  <div class="bd-hero-content">
+    {% if brand.is_verified %}
+    <div class="bd-verified">
+      <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#3b82f6"/><path d="M8 12l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Verified Brand
+    </div>
+    {% endif %}
+    <h1 class="bd-hero-name">{{ brand.name }}</h1>
+    <div class="bd-hero-meta">
+      {% if brand.rating %}
+      <span class="bd-hero-meta-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#D4AF37"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        {{ brand.rating }} Rating
+      </span>
+      {% endif %}
+      {% if brand.location %}
+      <span class="bd-hero-meta-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        {{ brand.location }}
+      </span>
+      {% endif %}
+      <span class="bd-hero-meta-item">👥 {{ brand.follower_count|default:"0" }} followers</span>
+    </div>
+  </div>
+</div>
+
+{# 3. Action bar + description #}
+<div style="background:#fff">
+  <div class="bd-actions">
+    {% if user.is_authenticated and user.user_type == 'customer' %}
+    {% if user.is_authenticated and user.user_type == 'customer' %}
+    <button class="bd-heart-btn {% if is_followed %}active{% endif %}" id="heartFollowBtn" onclick="ajaxFollow()" title="Follow">
+      <svg id="heartSvg" viewBox="0 0 24 24" fill="{% if is_followed %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    </button>
+    {% endif %}
+    {% endif %}
+
+    <button class="bd-share-btn" onclick="if(navigator.share){navigator.share({title:'{{ brand.name }}',url:window.location.href})}else{navigator.clipboard.writeText(window.location.href)}" title="Share">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    </button>
+
+    {% if brand.whatsapp %}
+    {% with clean_wa=brand.whatsapp %}
+    <a href="https://wa.me/{{ clean_wa }}?text=Hi%21+I%27m+interested+in+your+products+on+OJA+Marketplace." target="_blank" class="bd-wa-btn">
+      <span style="font-size:1.1rem">💬</span> Contact on WhatsApp
+    </a>
+    {% endwith %}
+    {% else %}
+    <button class="bd-wa-btn-off" disabled>Contact Not Available</button>
+    {% endif %}
+  </div>
+
+  <div class="bd-description">
+    <p>{{ brand.description|default:"" }}</p>
+  </div>
+
+  {# 4. Tabs + products #}
+  <div class="bd-tabs-wrap">
+    <div class="bd-tabs-sticky" id="bdTabsSticky">
+      <div class="bd-tabs-list">
+        <button class="bd-tab-btn active" data-cat="all">All Products</button>
+        {% for cat in categories %}
+        <button class="bd-tab-btn" data-cat="{{ cat.slug }}">{{ cat.name }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="bd-products">
+      <div class="bd-product-grid" id="bdGrid">
+        {% for p in products %}
+        <div class="pc-card" data-cat="{{ p.category.slug|default:'other' }}" onclick="location.href='{% url 'product_detail' p.id %}'">
+          <div class="pc-img-wrap">
+            {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}">{% else %}📦{% endif %}
+            {% if p.discount %}<span class="pc-discount-badge">-{{ p.discount }}%</span>{% endif %}
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'toggle_wishlist' p.id %}" onclick="event.stopPropagation()">
+              {% csrf_token %}
+              <button type="submit" class="pc-wl-btn {% if p.id in wishlist_ids %}wishlisted{% endif %}">
+                <svg viewBox="0 0 24 24" fill="{% if p.id in wishlist_ids %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+          <div class="pc-body">
+            <div class="pc-name">{{ p.name }}</div>
+            <div class="pc-price-row">
+              <span class="pc-price">₦{{ p.price|floatformat:0 }}</span>
+              {% if p.original_price != p.price %}<span class="pc-orig">₦{{ p.original_price|floatformat:0 }}</span>{% endif %}
+            </div>
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'add_to_cart' p.id %}" onclick="event.stopPropagation()">
+              {% csrf_token %}
+              <button type="submit" class="pc-cart-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.99-1.61L23 6H6"/></svg>
+                Add to Cart
+              </button>
+            </form>
+            {% else %}
+            <a href="{% url 'login' %}?next={{ request.path }}" class="pc-cart-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.99-1.61L23 6H6"/></svg>
+              Add to Cart
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        {% empty %}
+        <div class="bd-empty">No products from this brand yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── AJAX Follow ──
+var isFollowed = {{ is_followed|yesno:"true,false" }};
+var followUrl  = '{% url "follow_brand" brand.id %}';
+var csrfToken  = '{{ csrf_token }}';
+
+function ajaxFollow(){
+  var heartBtn   = document.getElementById('heartFollowBtn');
+  var heartSvg   = document.getElementById('heartSvg');
+  var stickyBtn  = document.getElementById('stickyFollowBtn');
+  var stickyTxt  = document.getElementById('stickyFollowTxt');
+  var countEl    = document.getElementById('followerCount');
+
+  fetch(followUrl, {
+    method:'POST',
+    headers:{'X-CSRFToken':csrfToken,'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json'},
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    isFollowed = data.followed;
+    if(heartBtn){ heartBtn.classList.toggle('active', isFollowed); }
+    if(heartSvg){ heartSvg.setAttribute('fill', isFollowed ? 'currentColor' : 'none'); }
+    if(stickyBtn){ stickyBtn.classList.toggle('following', isFollowed); }
+    if(stickyTxt){ stickyTxt.textContent = isFollowed ? 'FOLLOWING' : 'FOLLOW'; }
+    if(countEl){ countEl.textContent = data.follower_count; }
+    // Pulse animation
+    if(heartBtn){ heartBtn.style.transform='scale(1.3)'; setTimeout(function(){ heartBtn.style.transform=''; },200); }
+  })
+  .catch(function(){ window.location.href=followUrl.replace('follow/',''); });
+}
+
+(function(){
+  var hero = document.getElementById('bdHero');
+  var bar  = document.getElementById('bdStickyBar');
+  var tabs = document.getElementById('bdTabsSticky');
+
+  function onScroll(){
+    var y = window.scrollY;
+    if(hero) hero.style.opacity = Math.max(0, 1 - y/300);
+    if(y > 300){
+      bar.classList.add('visible');
+      tabs.style.top = '128px';
+    } else {
+      bar.classList.remove('visible');
+      tabs.style.top = '64px';
+    }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  /* Category filter */
+  var tabBtns = document.querySelectorAll('.bd-tab-btn');
+  var cards   = document.querySelectorAll('#bdGrid .pc-card');
+  var grid    = document.getElementById('bdGrid');
+
+  tabBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      tabBtns.forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var cat = btn.dataset.cat;
+      var vis = 0;
+      cards.forEach(function(c){
+        if(cat==='all' || c.dataset.cat===cat){ c.style.display=''; vis++; }
+        else { c.style.display='none'; }
+      });
+      var emp = grid.querySelector('.bd-empty');
+      if(vis===0 && !emp){
+        var d = document.createElement('div');
+        d.className='bd-empty'; d.textContent='No products found in this category.';
+        grid.appendChild(d);
+      } else if(vis>0 && emp){ emp.remove(); }
+    });
+  });
+})();
+</script>
+{% endblock %}

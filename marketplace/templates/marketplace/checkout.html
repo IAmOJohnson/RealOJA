@@ -1,0 +1,227 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}Checkout — OJA Campus{% endblock %}
+
+{% block extra_head %}
+<style>
+  .ps-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+    z-index:999; align-items:center; justify-content:center;
+  }
+  .ps-overlay.active { display:flex; }
+  .ps-spinner {
+    background:#fff; border-radius:16px; padding:2.5rem 3rem;
+    text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.25);
+  }
+  .ps-spinner .spin {
+    width:48px; height:48px; border:4px solid var(--gold-light);
+    border-top-color:var(--gold); border-radius:50%;
+    animation:spin .8s linear infinite; margin:0 auto 1rem;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .ps-step { display:flex; align-items:center; gap:.75rem; padding:.875rem 1.25rem; background:var(--gray-light); border-radius:8px; margin-bottom:.6rem; font-size:.875rem; font-weight:600; color:var(--text-muted); }
+  .ps-step.active { background:rgba(212,175,55,.12); color:var(--gray-dark); border:1.5px solid rgba(212,175,55,.3); }
+  .ps-step .step-num { width:24px; height:24px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0; }
+  .ps-step.active .step-num { background:var(--gold); color:#fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+  <div class="container" style="max-width:960px">
+    <h1 class="section-title mb-4">Checkout</h1>
+
+    <div class="cart-layout">
+
+      <!-- LEFT: delivery form -->
+      <div>
+        <!-- Escrow banner -->
+        <div style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1.5px solid var(--gold);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;display:flex;gap:1rem;align-items:flex-start">
+          <span style="font-size:1.6rem;flex-shrink:0">🔒</span>
+          <div>
+            <div style="font-weight:700;margin-bottom:.25rem">Your payment is protected by Campus Escrow</div>
+            <div style="font-size:.875rem;color:var(--text-muted)">Money held safely until you confirm receipt. Vendor only gets paid after you click "Item Received."</div>
+          </div>
+        </div>
+
+        <!-- How it works steps -->
+        <div style="margin-bottom:1.5rem">
+          <div style="font-weight:700;font-size:.875rem;margin-bottom:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">How it works</div>
+          <div class="ps-step active"><div class="step-num">1</div> Fill delivery details below</div>
+          <div class="ps-step active"><div class="step-num">2</div> Pay securely via Paystack popup</div>
+          <div class="ps-step"><div class="step-num">3</div> Seller packs &amp; ships your order</div>
+          <div class="ps-step"><div class="step-num">4</div> You confirm receipt → funds released to seller</div>
+        </div>
+
+        <!-- Delivery form -->
+        <div class="card card-body" style="margin-bottom:1.5rem">
+          <h3 style="font-weight:700;margin-bottom:1.25rem">📍 Campus Delivery</h3>
+          <div class="form-group">
+            <label>Delivery Zone</label>
+            {{ form.delivery_zone }}
+            <div id="zoneRateHint" style="margin-top:.4rem;font-size:.8rem;color:var(--text-muted)"></div>
+          </div>
+          <div class="form-group">
+            <label>Room / Block / Hostel Address</label>
+            {{ form.delivery_address }}
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Note for Runner (optional)</label>
+            {{ form.runner_note }}
+          </div>
+        </div>
+
+        <!-- Items -->
+        <div class="card card-body">
+          <h3 style="font-weight:700;margin-bottom:1rem">Your Items</h3>
+          {% for item in cart_items %}
+          <div class="cart-item">
+            <div class="cart-item-img">
+              {% if item.product.image %}<img src="{{ item.product.image.url }}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">{% else %}📦{% endif %}
+            </div>
+            <div class="cart-item-details">
+              <div style="font-weight:600">{{ item.product.name }}</div>
+              <div class="text-muted" style="font-size:.85rem">{{ item.product.brand.name }}</div>
+              <div style="color:var(--gold);font-weight:700">₦{{ item.product.price|floatformat:0 }} × {{ item.quantity }}</div>
+            </div>
+            <div style="font-weight:700;white-space:nowrap">₦{{ item.subtotal|floatformat:0 }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- RIGHT: summary + pay button -->
+      <div>
+        <div class="order-summary">
+          <h3 style="font-weight:700;font-size:1.1rem;margin-bottom:1.25rem">Order Summary</h3>
+          <div class="order-row"><span>Subtotal</span><span>₦{{ subtotal|floatformat:0 }}</span></div>
+          <div class="order-row"><span>Delivery</span><span id="deliveryFeeDisplay">Select zone</span></div>
+          <div class="order-row order-total">
+            <span>Total</span>
+            <span class="text-gold" id="grandTotal">₦{{ subtotal|floatformat:0 }}</span>
+          </div>
+
+          <!-- Paystack security note -->
+          <div style="margin:1.25rem 0;padding:1rem;background:rgba(212,175,55,.08);border-radius:var(--radius);border:1px solid rgba(212,175,55,.2)">
+            <div style="display:flex;gap:.5rem;align-items:center;font-size:.85rem;font-weight:700;margin-bottom:.4rem">
+              🔒 Escrow + Paystack Protected
+            </div>
+            <div style="font-size:.8rem;color:var(--text-muted)">Payment processed securely by Paystack. Funds held in escrow until delivery confirmed.</div>
+          </div>
+
+          <!-- Paystack logo -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:1rem;color:var(--text-muted);font-size:.8rem">
+            <svg width="18" height="18" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#00C3F7"/><path d="M8 15h24v4H8zm0 6h18v4H8z" fill="white"/></svg>
+            Powered by Paystack
+          </div>
+
+          <!-- PAY BUTTON -->
+          <button id="payBtn" onclick="initiatePayment()" class="btn-gold w-full" style="justify-content:center;font-size:1rem;padding:.9rem;gap:.6rem">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Pay with Paystack
+          </button>
+          <a href="{% url 'cart' %}" class="btn-outline w-full" style="display:flex;justify-content:center;margin-top:.75rem">← Back to Cart</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading overlay while Paystack initialises -->
+<div class="ps-overlay" id="psOverlay">
+  <div class="ps-spinner">
+    <div class="spin"></div>
+    <div style="font-weight:700;color:var(--gray-dark)">Connecting to Paystack…</div>
+    <div style="font-size:.85rem;color:var(--text-muted);margin-top:.25rem">Please wait</div>
+  </div>
+</div>
+
+<!-- Paystack inline script -->
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+var PAYSTACK_PUBLIC_KEY = '{{ PAYSTACK_PUBLIC_KEY }}';
+var subtotalNaira = {{ subtotal }};
+var zoneRates = { {% for z in campus_zones %}"{{ z.id }}": {{ z.flat_rate }},{% endfor %} };
+
+var zoneSelect   = document.getElementById('id_delivery_zone');
+var hintEl       = document.getElementById('zoneRateHint');
+var feeDisplay   = document.getElementById('deliveryFeeDisplay');
+var totalDisplay = document.getElementById('grandTotal');
+
+zoneSelect && zoneSelect.addEventListener('change', function(){
+  var fee = zoneRates[this.value] || 0;
+  hintEl.textContent     = fee ? '🛵 Flat delivery fee: ₦' + fee.toLocaleString() : '';
+  feeDisplay.textContent = fee ? '₦' + fee.toLocaleString() : 'Free';
+  totalDisplay.textContent = '₦' + (subtotalNaira + fee).toLocaleString();
+});
+
+function getCookie(name) {
+  var value = '; ' + document.cookie;
+  var parts = value.split('; ' + name + '=');
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+function initiatePayment() {
+  var zoneId    = zoneSelect ? zoneSelect.value : '';
+  var address   = document.getElementById('id_delivery_address') ? document.getElementById('id_delivery_address').value : '';
+  var runnerNote = document.getElementById('id_runner_note') ? document.getElementById('id_runner_note').value : '';
+
+  // Show spinner
+  document.getElementById('psOverlay').classList.add('active');
+  document.getElementById('payBtn').disabled = true;
+
+  // Step 1 — create pending orders, get reference + amount
+  fetch('{% url "paystack_initiate" %}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken'),
+    },
+    body: JSON.stringify({ zone_id: zoneId, address: address, runner_note: runnerNote }),
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    document.getElementById('psOverlay').classList.remove('active');
+
+    if(data.error) {
+      alert('Error: ' + data.error);
+      document.getElementById('payBtn').disabled = false;
+      return;
+    }
+
+    // Step 2 — launch Paystack inline popup
+    var handler = PaystackPop.setup({
+      key:       PAYSTACK_PUBLIC_KEY,
+      email:     data.email,
+      amount:    data.amount,        // in kobo
+      ref:       data.reference,
+      currency:  'NGN',
+      label:     'OJA Campus Marketplace',
+      metadata: {
+        custom_fields: [
+          { display_name: 'Platform', variable_name: 'platform', value: 'OJA Campus' }
+        ]
+      },
+      onClose: function() {
+        // User closed without paying
+        document.getElementById('payBtn').disabled = false;
+        // Clean up pending orders
+        fetch('/paystack/verify/?reference=' + data.reference + '&cancelled=1');
+      },
+      callback: function(response) {
+        // Step 3 — payment done, verify server-side
+        document.getElementById('psOverlay').classList.add('active');
+        window.location.href = '{% url "paystack_verify" %}?reference=' + response.reference;
+      }
+    });
+
+    handler.openIframe();
+  })
+  .catch(function(err) {
+    document.getElementById('psOverlay').classList.remove('active');
+    document.getElementById('payBtn').disabled = false;
+    alert('Something went wrong. Please try again.');
+    console.error(err);
+  });
+}
+</script>
+{% endblock %}

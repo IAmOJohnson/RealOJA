@@ -1,0 +1,247 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}Admin Dashboard — OJA{% endblock %}
+{% block content %}
+<div class="section">
+  <div class="container">
+    <div class="flex-between" style="margin-bottom:2rem">
+      <div><h1 style="font-size:1.75rem;font-weight:800">Admin Dashboard</h1><p class="text-muted">{{ user.email }}</p></div>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+        <a href="{% url 'hub_dashboard' %}" class="btn-gold" style="display:flex;align-items:center;gap:.4rem">
+          📦 Hub Dashboard
+        </a>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="btn-outline">Logout</button></form>
+      </div>
+    </div>
+
+    <div class="stats-grid" style="margin-bottom:1.5rem">
+      <div class="stat-card"><div class="stat-value">{{ total_users }}</div><div class="stat-label">Total Users</div></div>
+      <div class="stat-card"><div class="stat-value">{{ total_sellers }}</div><div class="stat-label">Sellers</div></div>
+      <div class="stat-card"><div class="stat-value">{{ total_products }}</div><div class="stat-label">Active Products</div></div>
+      <div class="stat-card"><div class="stat-value" style="font-size:1.2rem">₦{{ total_revenue|floatformat:0 }}</div><div class="stat-label">Commission Earned</div></div>
+    </div>
+
+    <div class="profile-tabs">
+      <button class="profile-tab active" data-tab="student-ids">🎓 Student IDs {% if unverified_students %}({{ unverified_students|length }}){% endif %}</button>
+      <button class="profile-tab" data-tab="verifications">✅ Verifications {% if pending_verifications %}({{ pending_verifications|length }}){% endif %}</button>
+      <button class="profile-tab" data-tab="withdrawals">💰 Withdrawals {% if pending_withdrawals %}({{ pending_withdrawals|length }}){% endif %}</button>
+      <button class="profile-tab" data-tab="orders">📦 Orders</button>
+      <button class="profile-tab" data-tab="sellers">Sellers</button>
+      <button class="profile-tab" data-tab="users">Users</button>
+      <button class="profile-tab" data-tab="notify">📣 Notify</button>
+    </div>
+
+    <!-- STUDENT ID VERIFICATION -->
+    <div class="tab-content active" id="tab-student-ids">
+      {% if unverified_students %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>User</th><th>Email</th><th>Matric</th><th>University</th><th>Student ID</th><th>Action</th></tr></thead>
+          <tbody>
+          {% for u in unverified_students %}
+          <tr>
+            <td>{{ u.first_name|default:u.username }}</td>
+            <td>{{ u.email }}</td>
+            <td><code>{{ u.matric_number }}</code></td>
+            <td>{{ u.university|default:"—" }}</td>
+            <td>
+              {% if u.student_id_image %}
+              <a href="{{ u.student_id_image.url }}" target="_blank" class="btn-outline-sm">View ID 🔗</a>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <form method="post">{% csrf_token %}
+                <input type="hidden" name="action" value="verify_student">
+                <input type="hidden" name="user_id" value="{{ u.id }}">
+                <button type="submit" class="btn-success" style="padding:.35rem .75rem;font-size:.85rem">✓ Verify</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><div class="empty-icon">🎓</div><p>No pending student ID verifications.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- STORE VERIFICATIONS -->
+    <div class="tab-content" id="tab-verifications">
+      {% if pending_verifications %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Store</th><th>Seller</th><th>Applied</th><th>Actions</th></tr></thead>
+          <tbody>
+          {% for v in pending_verifications %}
+          <tr>
+            <td><strong>{{ v.brand.name }}</strong></td>
+            <td>{{ v.brand.seller.email }}</td>
+            <td>{{ v.applied_at|date:"N j, Y" }}</td>
+            <td>
+              <div style="display:flex;gap:.5rem">
+                <form method="post">{% csrf_token %}
+                  <input type="hidden" name="action" value="verify_seller">
+                  <input type="hidden" name="brand_id" value="{{ v.brand.id }}">
+                  <button type="submit" class="btn-success" style="padding:.35rem .75rem;font-size:.85rem">✓ Approve</button>
+                </form>
+                <form method="post">{% csrf_token %}
+                  <input type="hidden" name="action" value="reject_seller">
+                  <input type="hidden" name="brand_id" value="{{ v.brand.id }}">
+                  <button type="submit" class="btn-danger" style="padding:.35rem .75rem;font-size:.85rem">✕ Reject</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><div class="empty-icon">✅</div><p>No pending store verifications.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- WITHDRAWALS -->
+    <div class="tab-content" id="tab-withdrawals">
+      {% if pending_withdrawals %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Store</th><th>Amount</th><th>Bank</th><th>Account</th><th>Requested</th><th>Action</th></tr></thead>
+          <tbody>
+          {% for w in pending_withdrawals %}
+          <tr>
+            <td><strong>{{ w.brand.name }}</strong></td>
+            <td>₦{{ w.amount|floatformat:0 }}</td>
+            <td>{{ w.bank_name }}</td>
+            <td>{{ w.account_number }}<br><small>{{ w.account_holder_name }}</small></td>
+            <td>{{ w.requested_at|date:"N j, Y" }}</td>
+            <td>
+              <form method="post" style="display:flex;flex-direction:column;gap:.4rem">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="process_withdrawal">
+                <input type="hidden" name="withdrawal_id" value="{{ w.id }}">
+                <input type="text" name="admin_note" placeholder="Note (optional)" class="input-field" style="width:160px;padding:.3rem .5rem;font-size:.8rem">
+                <div style="display:flex;gap:.4rem">
+                  <button type="submit" name="withdrawal_status" value="paid" class="btn-success" style="padding:.3rem .6rem;font-size:.8rem">✓ Paid</button>
+                  <button type="submit" name="withdrawal_status" value="rejected" class="btn-danger" style="padding:.3rem .6rem;font-size:.8rem">✕ Reject</button>
+                </div>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><div class="empty-icon">💰</div><p>No pending withdrawal requests.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- ORDERS -->
+    <div class="tab-content" id="tab-orders">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Order #</th><th>Buyer</th><th>Brand</th><th>Total</th><th>Commission</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>
+          {% for order in orders %}
+          <tr>
+            <td><strong>#{{ order.pk }}</strong></td>
+            <td>{{ order.buyer.first_name|default:order.buyer.username }}</td>
+            <td>{{ order.brand.name }}</td>
+            <td>₦{{ order.total|floatformat:0 }}</td>
+            <td style="color:var(--success)">₦{{ order.commission_amount|floatformat:0 }}</td>
+            <td><span class="tag">{{ order.get_status_display }}</span></td>
+            <td>{{ order.created_at|date:"N j" }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SELLERS -->
+    <div class="tab-content" id="tab-sellers">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Brand</th><th>Seller</th><th>Tier</th><th>Verified</th><th>Products</th><th>Wallet</th><th>Action</th></tr></thead>
+          <tbody>
+          {% for brand in brands %}
+          <tr>
+            <td><strong>{{ brand.name }}</strong></td>
+            <td>{{ brand.seller.email }}</td>
+            <td>
+              {% if brand.is_pro %}<span style="background:#fef9c3;color:#92400e;font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:20px">⭐ PRO</span>
+              {% else %}<span class="tag">Free</span>{% endif %}
+            </td>
+            <td>{% if brand.is_verified %}<span class="verified-badge">✓</span>{% else %}<span class="tag">Pending</span>{% endif %}</td>
+            <td>{{ brand.product_count }}</td>
+            <td>₦{{ brand.wallet_balance|floatformat:0 }}</td>
+            <td>
+              {% if not brand.is_pro %}
+              <form method="post">{% csrf_token %}
+                <input type="hidden" name="action" value="grant_pro">
+                <input type="hidden" name="brand_id" value="{{ brand.id }}">
+                <button type="submit" class="btn-outline-sm">Grant Pro</button>
+              </form>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="tab-content" id="tab-users">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Student Verified</th><th>Joined</th></tr></thead>
+          <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u.first_name|default:u.username }}</td>
+            <td>{{ u.email }}</td>
+            <td><span class="tag">{{ u.user_type }}</span></td>
+            <td>{% if u.student_verified %}✅{% elif u.matric_number %}⏳{% else %}—{% endif %}</td>
+            <td>{{ u.date_joined|date:"N j, Y" }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SEND NOTIFICATION -->
+    <div class="tab-content" id="tab-notify">
+      <div style="max-width:520px">
+        <h3 style="font-weight:700;margin-bottom:1.5rem">Send a Notification</h3>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="send_notification">
+          <div class="form-group"><label>Recipient (blank = broadcast)</label>
+            <select name="recipient_id" class="input-field"><option value="">All Users</option>{% for u in users %}<option value="{{ u.id }}">{{ u.email }} ({{ u.user_type }})</option>{% endfor %}</select>
+          </div>
+          <div class="form-group"><label>Type</label>
+            <select name="type" class="input-field"><option value="admin">Admin</option><option value="offer">Offer</option><option value="system">System</option><option value="escrow">Escrow</option></select>
+          </div>
+          <div class="form-group"><label>Title</label><input type="text" name="title" class="input-field" required></div>
+          <div class="form-group"><label>Message</label><textarea name="message" class="input-field" rows="4" required></textarea></div>
+          <button type="submit" class="btn-gold">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.profile-tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.profile-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+  });
+});
+</script>
+{% endblock %}

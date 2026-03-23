@@ -1,0 +1,338 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}My Profile — OJA{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Hub status helpers ── */
+.hub-pill { font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+.hub-pending   { background:#fef9c3; color:#92400e; }
+.hub-transit   { background:#dbeafe; color:#1d4ed8; }
+.hub-received  { background:#dcfce7; color:#15803d; }
+.hub-packaged  { background:#e0e7ff; color:#4338ca; }
+
+/* ── Master order card ── */
+.mo-card { background:#fff; border:1.5px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:1.25rem; transition:box-shadow .2s; }
+.mo-card:hover { box-shadow:0 4px 20px rgba(0,0,0,.08); }
+.mo-head { padding:1.1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem; }
+.mo-ref  { font-weight:800; font-size:.95rem; font-family:monospace; color:var(--gray-dark); }
+.mo-bin  { background:#1e293b; color:var(--gold); font-size:.75rem; font-weight:800; padding:2px 10px; border-radius:6px; font-family:monospace; }
+.mo-status { font-size:.75rem; font-weight:700; padding:3px 11px; border-radius:20px; }
+.ms-awaiting_payment { background:#fef9c3; color:#92400e; }
+.ms-awaiting_arrivals { background:#dbeafe; color:#1d4ed8; }
+.ms-ready_for_packaging { background:#fef9c3; color:#92400e; border:1.5px solid #fcd34d; }
+.ms-packaged { background:#e0e7ff; color:#4338ca; }
+.ms-out_for_delivery { background:#bfdbfe; color:#1d4ed8; }
+.ms-confirmed { background:#dcfce7; color:#15803d; }
+.ms-cancelled { background:#f3f4f6; color:#6b7280; }
+
+/* ── Hub timeline ── */
+.hub-timeline { display:flex; align-items:center; padding:.875rem 1.5rem; border-bottom:1px solid var(--border); overflow-x:auto; gap:0; }
+.ht-step { display:flex; flex-direction:column; align-items:center; gap:.3rem; flex-shrink:0; }
+.ht-dot  { width:32px; height:32px; border-radius:50%; border:2px solid var(--border); background:#fff; display:flex; align-items:center; justify-content:center; font-size:.85rem; }
+.ht-dot.done   { background:var(--gold); border-color:var(--gold); }
+.ht-dot.active { background:#1e293b; border-color:#1e293b; }
+.ht-label { font-size:.62rem; font-weight:600; color:var(--text-muted); white-space:nowrap; }
+.ht-line { flex:1; height:2px; background:var(--border); margin-bottom:1.3rem; min-width:20px; }
+.ht-line.done { background:var(--gold); }
+
+/* ── Sub-order row ── */
+.sub-row { display:flex; align-items:flex-start; gap:1rem; padding:.75rem 0; border-bottom:1px solid var(--border); }
+.sub-row:last-child { border-bottom:none; }
+.sub-icon { width:36px; height:36px; border-radius:8px; background:var(--gray-light); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+.sub-info { flex:1; min-width:0; }
+.sub-vendor { font-weight:700; font-size:.9rem; }
+.sub-items  { font-size:.8rem; color:var(--text-muted); margin:.1rem 0 .3rem; }
+
+/* ── Progress bar ── */
+.mo-progress-wrap { background:var(--border); border-radius:20px; height:5px; width:160px; overflow:hidden; margin-top:.3rem; }
+.mo-progress-fill { height:100%; background:var(--gold); border-radius:20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+  <div class="container">
+
+    <!-- Profile header -->
+    <div class="card card-body flex-between" style="margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <div style="width:60px;height:60px;border-radius:50%;background:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:1.75rem;overflow:hidden;flex-shrink:0">
+          {% if user.avatar %}<img src="{{ user.avatar.url }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">{% else %}👤{% endif %}
+        </div>
+        <div>
+          <div style="font-weight:800;font-size:1.15rem">{{ user.first_name|default:user.username }}</div>
+          <div class="text-muted" style="font-size:.875rem">{{ user.email }}</div>
+          <div style="display:flex;gap:.4rem;margin-top:.3rem;flex-wrap:wrap">
+            <span class="tag">Customer</span>
+            {% if user.student_verified %}<span style="background:#dcfce7;color:#15803d;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:20px">🎓 Verified Student</span>
+            {% elif user.matric_number %}<span style="background:#fef9c3;color:#92400e;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:20px">⏳ ID Pending</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+        <button type="submit" class="btn-outline">Logout</button>
+      </form>
+    </div>
+
+    <!-- Tabs -->
+    <div class="profile-tabs">
+      <button class="profile-tab active" data-tab="orders">📦 Orders ({{ master_orders|length }})</button>
+      <button class="profile-tab" data-tab="cart">🛒 Cart ({{ cart_items|length }})</button>
+      <button class="profile-tab" data-tab="wishlist">♡ Wishlist ({{ wishlist_items|length }})</button>
+      <button class="profile-tab" data-tab="following">🏪 Following ({{ followed_brands|length }})</button>
+      <button class="profile-tab" data-tab="notifications">🔔 Alerts</button>
+    </div>
+
+    <!-- ── ORDERS ── -->
+    <div class="tab-content active" id="tab-orders">
+
+      {% if master_orders %}
+      {% for master in master_orders %}
+      <div class="mo-card">
+
+        <!-- Header -->
+        <div class="mo-head" style="background:{% if master.status == 'out_for_delivery' %}linear-gradient(135deg,#eff6ff,#dbeafe){% elif master.status == 'confirmed' %}linear-gradient(135deg,#f0fdf4,#dcfce7){% elif master.status == 'ready_for_packaging' or master.status == 'packaged' %}linear-gradient(135deg,#fffbeb,#fef9c3){% else %}var(--gray-light){% endif %}">
+          <div>
+            <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.3rem">
+              <span class="mo-ref">OJA-{{ master.payment_reference|truncatechars:14 }}</span>
+              {% if master.hub_bin %}<span class="mo-bin">{{ master.hub_bin }}</span>{% endif %}
+              <span class="mo-status ms-{{ master.status }}">
+                {% if master.status == 'awaiting_payment' %}⏳ Awaiting Payment
+                {% elif master.status == 'awaiting_arrivals' %}🏪 Vendors Preparing
+                {% elif master.status == 'ready_for_packaging' %}🎁 At Hub — Being Packed
+                {% elif master.status == 'packaged' %}📦 Packed — Rider Coming
+                {% elif master.status == 'out_for_delivery' %}🛵 Out for Delivery
+                {% elif master.status == 'confirmed' %}✅ Delivered & Complete
+                {% elif master.status == 'cancelled' %}❌ Cancelled
+                {% else %}{{ master.get_status_display }}{% endif %}
+              </span>
+            </div>
+            <div style="font-size:.8rem;color:var(--text-muted)">
+              {{ master.orders.count }} vendor{{ master.orders.count|pluralize }} ·
+              {{ master.created_at|date:"N j, Y" }}
+              {% if master.delivery_zone %} · 🛵 {{ master.delivery_zone.name }}{% endif %}
+            </div>
+          </div>
+          <div style="font-weight:800;font-size:1.1rem;color:var(--gold)">₦{{ master.grand_total|floatformat:0 }}</div>
+        </div>
+
+        <!-- Hub timeline -->
+        <div class="hub-timeline">
+          {% with s=master.status %}
+
+          <div class="ht-step">
+            <div class="ht-dot done">🛒</div>
+            <div class="ht-label">Ordered</div>
+          </div>
+          <div class="ht-line done"></div>
+
+          <div class="ht-step">
+            <div class="ht-dot {% if s != 'awaiting_payment' %}done{% endif %}">💳</div>
+            <div class="ht-label">Paid</div>
+          </div>
+          <div class="ht-line {% if s != 'awaiting_payment' %}done{% endif %}"></div>
+
+          <div class="ht-step">
+            <div class="ht-dot {% if s == 'ready_for_packaging' or s == 'packaged' or s == 'out_for_delivery' or s == 'confirmed' %}done{% elif s == 'awaiting_arrivals' %}active{% endif %}">🏪</div>
+            <div class="ht-label">Vendors Pack</div>
+          </div>
+          <div class="ht-line {% if s == 'ready_for_packaging' or s == 'packaged' or s == 'out_for_delivery' or s == 'confirmed' %}done{% endif %}"></div>
+
+          <div class="ht-step">
+            <div class="ht-dot {% if s == 'packaged' or s == 'out_for_delivery' or s == 'confirmed' %}done{% elif s == 'ready_for_packaging' %}active{% endif %}">📦</div>
+            <div class="ht-label">Hub Packs</div>
+          </div>
+          <div class="ht-line {% if s == 'out_for_delivery' or s == 'confirmed' %}done{% endif %}"></div>
+
+          <div class="ht-step">
+            <div class="ht-dot {% if s == 'confirmed' %}done{% elif s == 'out_for_delivery' %}active{% endif %}">🛵</div>
+            <div class="ht-label">Delivery</div>
+          </div>
+          <div class="ht-line {% if s == 'confirmed' %}done{% endif %}"></div>
+
+          <div class="ht-step">
+            <div class="ht-dot {% if s == 'confirmed' %}done{% endif %}">✅</div>
+            <div class="ht-label">Confirmed</div>
+          </div>
+
+          {% endwith %}
+        </div>
+
+        <!-- Sub-orders per vendor -->
+        <div style="padding:.75rem 1.5rem">
+          {% for sub in master.orders.all %}
+          <div class="sub-row">
+            <div class="sub-icon">
+              {% if sub.brand.logo %}<img src="{{ sub.brand.logo.url }}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">{% else %}🏪{% endif %}
+            </div>
+            <div class="sub-info">
+              <div class="sub-vendor">{{ sub.brand.name }}</div>
+              <div class="sub-items">{% for item in sub.items.all %}{{ item.product_name }} ×{{ item.quantity }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+              <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+                <span class="hub-pill {% if sub.hub_status == 'pending_vendor_shipment' %}hub-pending{% elif sub.hub_status == 'in_transit_to_hub' %}hub-transit{% elif sub.hub_status == 'received_at_hub' %}hub-received{% else %}hub-packaged{% endif %}">
+                  {% if sub.hub_status == 'pending_vendor_shipment' %}⏳ Vendor Preparing
+                  {% elif sub.hub_status == 'in_transit_to_hub' %}🚚 In Transit to Hub
+                  {% elif sub.hub_status == 'received_at_hub' %}✓ At OJA Hub
+                  {% else %}📦 Packed{% endif %}
+                </span>
+                {% if sub.hub_received_at and sub.hub_status == 'received_at_hub' %}
+                <span style="font-size:.72rem;color:var(--text-muted)">{{ sub.hub_received_at|date:"g:i A" }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div style="font-weight:700;font-size:.875rem;white-space:nowrap">₦{{ sub.subtotal|floatformat:0 }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Progress + actions -->
+        <div style="padding:.875rem 1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;background:rgba(248,248,248,.6)">
+          <div>
+            {% if master.status == 'awaiting_arrivals' %}
+            <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.3rem">
+              {{ master.arrived_count }}/{{ master.total_sub_orders }} items arrived at OJA Hub
+            </div>
+            <div class="mo-progress-wrap">
+              <div class="mo-progress-fill" style="width:{% if master.total_sub_orders %}{% widthratio master.arrived_count master.total_sub_orders 100 %}{% else %}0{% endif %}%"></div>
+            </div>
+            {% elif master.status == 'ready_for_packaging' %}
+            <span style="font-size:.85rem;font-weight:700;color:#92400e">🎁 All items at hub — being packed now</span>
+            {% elif master.status == 'packaged' %}
+            <span style="font-size:.85rem;font-weight:700;color:#4338ca">📦 Packed in {{ master.hub_bin|default:"OJA bag" }} — rider being assigned</span>
+            {% elif master.status == 'out_for_delivery' %}
+            <span style="font-size:.85rem;font-weight:700;color:#1d4ed8">🛵 Rider is on the way to you!</span>
+            {% elif master.status == 'confirmed' %}
+            <span style="font-size:.85rem;font-weight:700;color:#15803d">✅ Delivered {{ master.delivered_at|date:"N j, Y" }}</span>
+            {% endif %}
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+            {% if master.status == 'out_for_delivery' or master.status == 'packaged' %}
+            <form method="post" action="{% url 'confirm_master_delivery' master.pk %}" onsubmit="return confirm('Confirm you received all items? This will release funds to all sellers.')">
+              {% csrf_token %}
+              <button type="submit" class="btn-gold" style="font-size:.875rem;padding:.5rem 1.1rem">
+                ✅ I Received My Order — Release Funds
+              </button>
+            </form>
+            {% endif %}
+            {% for sub in master.orders.all %}
+            <a href="{% url 'order_detail' sub.pk %}" class="btn-outline" style="font-size:.78rem;padding:.35rem .8rem">
+              {{ sub.brand.name }} #{{ sub.pk }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+      {% endfor %}
+
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <h3>No orders yet</h3>
+        <p class="text-muted">Browse brands and start shopping.</p>
+        <a href="{% url 'brands' %}" class="btn-gold" style="display:inline-flex;margin-top:1rem">Browse Brands →</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── CART ── -->
+    <div class="tab-content" id="tab-cart">
+      {% if cart_items %}
+        {% for item in cart_items %}
+        <div class="cart-item">
+          <div class="cart-item-img">
+            {% if item.product.image %}<img src="{{ item.product.image.url }}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">{% else %}📦{% endif %}
+          </div>
+          <div class="cart-item-details">
+            <a href="{% url 'product_detail' item.product.id %}" style="font-weight:600">{{ item.product.name }}</a>
+            <div class="text-muted">{{ item.product.brand.name }}</div>
+            <div style="color:var(--gold);font-weight:700">₦{{ item.product.price|floatformat:0 }} × {{ item.quantity }}</div>
+          </div>
+          <div style="font-weight:700">₦{{ item.subtotal|floatformat:0 }}</div>
+        </div>
+        {% endfor %}
+        <div style="margin-top:1rem;display:flex;gap:.75rem">
+          <a href="{% url 'cart' %}" class="btn-outline">View Cart</a>
+          <a href="{% url 'checkout' %}" class="btn-gold">Checkout 🔒</a>
+        </div>
+      {% else %}
+        <div class="empty-state"><div class="empty-icon">🛒</div><p>Cart is empty.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- ── WISHLIST ── -->
+    <div class="tab-content" id="tab-wishlist">
+      {% if wishlist_items %}
+      <div class="grid-4">
+        {% for item in wishlist_items %}
+        <a href="{% url 'product_detail' item.product.id %}" class="card product-card" style="display:block;text-decoration:none;color:inherit">
+          {% if item.product.image %}<img src="{{ item.product.image.url }}" class="product-card-img">
+          {% else %}<div class="product-card-img-placeholder">📦</div>{% endif %}
+          <div class="card-body">
+            <div class="product-name">{{ item.product.name }}</div>
+            <div class="product-price">₦{{ item.product.price|floatformat:0 }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="empty-state"><div class="empty-icon">♡</div><p>Wishlist is empty.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- ── FOLLOWING ── -->
+    <div class="tab-content" id="tab-following">
+      {% if followed_brands %}
+      <div class="grid-4">
+        {% for brand in followed_brands %}
+        <a href="{% url 'brand_detail' brand.id %}" class="card brand-card" style="display:block;text-decoration:none;color:inherit">
+          <div class="brand-logo">{% if brand.logo %}<img src="{{ brand.logo.url }}">{% else %}🏪{% endif %}</div>
+          <div class="brand-name">{{ brand.name }}</div>
+          {% if brand.is_verified %}<span class="verified-badge">✓ Verified</span>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="empty-state"><div class="empty-icon">🏪</div><p>Not following any brands.</p><a href="{% url 'brands' %}" class="btn-gold" style="display:inline-flex;margin-top:1rem">Browse Brands</a></div>
+      {% endif %}
+    </div>
+
+    <!-- ── NOTIFICATIONS ── -->
+    <div class="tab-content" id="tab-notifications">
+      {% if notifications %}
+        {% for notif in notifications %}
+        <div class="notif-item {% if not notif.is_read %}unread{% endif %}">
+          <div class="notif-icon">
+            {% if notif.notification_type == 'escrow' %}🔒
+            {% elif notif.notification_type == 'sale' %}💰
+            {% elif notif.notification_type == 'system' %}📦
+            {% elif notif.notification_type == 'verification' %}✅
+            {% else %}🔔{% endif %}
+          </div>
+          <div>
+            <div class="notif-title">{{ notif.title }}</div>
+            <div style="font-size:.875rem;color:var(--text-muted)">{{ notif.message }}</div>
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">{{ notif.created_at|date:"N j, Y · g:i A" }}</div>
+          </div>
+        </div>
+        {% endfor %}
+        <div style="margin-top:1rem"><a href="{% url 'notifications' %}" class="btn-outline">View All →</a></div>
+      {% else %}
+        <div class="empty-state"><div class="empty-icon">🔔</div><p>No notifications.</p></div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.profile-tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+</script>
+{% endblock %}

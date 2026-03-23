@@ -1,0 +1,870 @@
+{% extends 'marketplace/base.html' %}
+{% block title %}Seller Dashboard — OJA{% endblock %}
+
+{% block extra_head %}
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<style>
+/* ─── Layout ─── */
+.sd-wrap   { max-width:1200px; margin:0 auto; padding:5.5rem 1.5rem 3rem; }
+.sd-grid   { display:grid; grid-template-columns:260px 1fr; gap:1.5rem; align-items:start; }
+@media(max-width:900px){ .sd-grid { grid-template-columns:1fr; } }
+
+/* ─── Sidebar ─── */
+.sd-sidebar { position:sticky; top:80px; }
+.sd-profile-card {
+  background:linear-gradient(135deg,#f0fdf4,#dcfce7);
+  border:1px solid #86efac; border-radius:16px; padding:1.5rem; margin-bottom:1rem;
+}
+.sd-logo {
+  width:80px; height:80px; border-radius:12px; background:#fff;
+  box-shadow:0 4px 12px rgba(0,0,0,.1); display:flex; align-items:center;
+  justify-content:center; font-size:2.5rem; margin-bottom:1rem;
+  overflow:hidden; flex-shrink:0;
+}
+.sd-logo img { width:100%; height:100%; object-fit:cover; border-radius:12px; }
+.sd-brand-name { font-size:1.15rem; font-weight:800; color:#14532d; margin-bottom:.2rem; }
+.sd-email { font-size:.8rem; color:#15803d; }
+.sd-badges { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+.badge-verified { background:#1d4ed8; color:#fff; font-size:.7rem; font-weight:700; padding:2px 10px; border-radius:20px; }
+.badge-pro      { background:linear-gradient(90deg,#D4AF37,#C69C2E); color:#fff; font-size:.7rem; font-weight:700; padding:2px 10px; border-radius:20px; }
+.badge-free     { background:#e5e7eb; color:#6b7280; font-size:.7rem; font-weight:600; padding:2px 10px; border-radius:20px; }
+.badge-pending  { background:#fee2e2; color:#b91c1c; font-size:.7rem; font-weight:600; padding:2px 10px; border-radius:20px; }
+
+/* ─── Sidebar nav ─── */
+.sd-nav { background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.sd-nav-item {
+  display:flex; align-items:center; gap:.75rem; padding:.875rem 1.25rem;
+  cursor:pointer; border:none; background:none; width:100%; text-align:left;
+  font-family:inherit; font-size:.9rem; font-weight:600; color:var(--text-muted);
+  border-left:3px solid transparent; transition:all .15s;
+}
+.sd-nav-item:hover { background:var(--gray-light); color:var(--gray-dark); }
+.sd-nav-item.active { background:rgba(212,175,55,.08); color:var(--gold); border-left-color:var(--gold); }
+.sd-nav-item .nav-icon { font-size:1.1rem; width:20px; text-align:center; }
+.sd-nav-badge { margin-left:auto; background:var(--gold); color:#fff; font-size:.65rem; font-weight:700; padding:1px 7px; border-radius:20px; }
+.sd-nav-divider { border:none; border-top:1px solid var(--border); margin:0; }
+
+/* ─── Main panel ─── */
+.sd-panel { display:none; }
+.sd-panel.active { display:block; }
+.sd-panel-title { font-size:1.5rem; font-weight:800; color:var(--gray-dark); margin-bottom:.25rem; }
+.sd-panel-sub { color:var(--text-muted); font-size:.875rem; margin-bottom:1.5rem; }
+
+/* ─── Stats row ─── */
+.sd-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+@media(max-width:700px){ .sd-stats { grid-template-columns:repeat(2,1fr); } }
+.sd-stat {
+  background:#fff; border:1px solid var(--border); border-radius:12px;
+  padding:1.1rem 1.25rem; position:relative; overflow:hidden;
+}
+.sd-stat::after { content:''; position:absolute; top:0; left:0; width:3px; height:100%; background:var(--gold); }
+.sd-stat-val { font-size:1.6rem; font-weight:900; color:var(--gray-dark); line-height:1; }
+.sd-stat-label { font-size:.75rem; color:var(--text-muted); margin-top:.3rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+
+/* ─── Product cards (React style) ─── */
+.pd-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.25rem; }
+@media(max-width:1100px){ .pd-grid { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:700px)  { .pd-grid { grid-template-columns:repeat(2,1fr); } }
+.pd-card { background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; transition:box-shadow .2s; }
+.pd-card:hover { box-shadow:0 6px 24px rgba(0,0,0,.1); }
+.pd-card-img {
+  height:128px; background:var(--gray-light); display:flex; align-items:center;
+  justify-content:center; font-size:3rem; position:relative; overflow:hidden;
+}
+.pd-card-img img { width:100%; height:100%; object-fit:cover; }
+.pd-status-pill {
+  position:absolute; top:.5rem; right:.5rem; font-size:.7rem; font-weight:700;
+  padding:2px 8px; border-radius:6px;
+}
+.pd-status-active   { background:#dcfce7; color:#15803d; }
+.pd-status-inactive { background:#f3f4f6; color:#6b7280; }
+.pd-status-draft    { background:#fef9c3; color:#92400e; }
+.pd-body { padding:1rem; }
+.pd-brand-tag { font-size:.72rem; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.25rem; }
+.pd-name { font-weight:700; font-size:.875rem; color:var(--gray-dark); margin-bottom:.5rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.pd-price-row { display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; }
+.pd-price     { font-size:1.1rem; font-weight:800; color:var(--gold); }
+.pd-orig      { font-size:.8rem; color:var(--text-muted); text-decoration:line-through; }
+.pd-disc      { font-size:.72rem; color:var(--text-muted); }
+.pd-stock-box { background:var(--gray-light); border-radius:6px; padding:.4rem .6rem; font-size:.75rem; margin-bottom:.75rem; }
+.pd-meta-row  { display:flex; justify-content:space-between; font-size:.75rem; color:var(--text-muted); margin-bottom:.75rem; padding-bottom:.75rem; border-bottom:1px solid var(--border); }
+.pd-actions   { display:flex; gap:.5rem; }
+.pd-btn-edit  { flex:1; display:flex; align-items:center; justify-content:center; gap:.3rem; padding:.45rem; border:1.5px solid var(--gold); color:var(--gold); background:none; border-radius:6px; font-size:.78rem; font-weight:600; cursor:pointer; font-family:inherit; transition:background .15s; }
+.pd-btn-edit:hover { background:rgba(212,175,55,.08); }
+.pd-btn-del   { flex:1; display:flex; align-items:center; justify-content:center; gap:.3rem; padding:.45rem; border:1.5px solid #ef4444; color:#ef4444; background:none; border-radius:6px; font-size:.78rem; font-weight:600; cursor:pointer; font-family:inherit; transition:background .15s; }
+.pd-btn-del:hover { background:#fff5f5; }
+
+/* ─── Search bar ─── */
+.sd-search { position:relative; margin-bottom:1.25rem; }
+.sd-search input { padding-left:2.5rem; }
+.sd-search-icon { position:absolute; left:.875rem; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none; }
+
+/* ─── Orders table ─── */
+.ord-status { font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+.ord-paid      { background:#dbeafe; color:#1d4ed8; }
+.ord-shipped   { background:#e0e7ff; color:#4338ca; }
+.ord-confirmed { background:#dcfce7; color:#15803d; }
+.ord-pending   { background:#fef9c3; color:#92400e; }
+.ord-cancelled { background:#f3f4f6; color:#6b7280; }
+.ord-disputed  { background:#fee2e2; color:#b91c1c; }
+
+/* ─── Wallet ─── */
+.wlt-card {
+  border-radius:16px; padding:1.75rem; color:#fff; position:relative; overflow:hidden;
+}
+.wlt-available { background:linear-gradient(135deg,#1e293b,#0f172a); }
+.wlt-pending   { background:linear-gradient(135deg,#78350f,#92400e); }
+.wlt-earned    { background:linear-gradient(135deg,#14532d,#15803d); }
+.wlt-card::after { content:''; position:absolute; top:-30px; right:-30px; width:120px; height:120px; background:rgba(255,255,255,.06); border-radius:50%; }
+.wlt-label { font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; opacity:.7; margin-bottom:.5rem; }
+.wlt-amount { font-size:2rem; font-weight:900; line-height:1; }
+.wlt-sub { font-size:.8rem; opacity:.6; margin-top:.35rem; }
+
+/* ─── UPGRADE PAGE ─── */
+.up-hero {
+  background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);
+  border-radius:20px; padding:3rem; text-align:center; position:relative;
+  overflow:hidden; margin-bottom:2rem;
+}
+.up-hero::before {
+  content:''; position:absolute; top:-80px; left:50%; transform:translateX(-50%);
+  width:400px; height:400px; background:radial-gradient(circle,rgba(212,175,55,.15) 0%,transparent 70%);
+  pointer-events:none;
+}
+.up-hero-tag { display:inline-flex; align-items:center; gap:.4rem; background:rgba(212,175,55,.15); border:1px solid rgba(212,175,55,.4); border-radius:20px; padding:.35rem 1.1rem; font-size:.78rem; font-weight:700; color:var(--gold); letter-spacing:.06em; margin-bottom:1.25rem; }
+.up-hero h2 { font-size:2.25rem; font-weight:900; color:#fff; letter-spacing:-.03em; line-height:1.1; margin-bottom:.75rem; }
+.up-hero p  { color:rgba(255,255,255,.55); font-size:1rem; max-width:500px; margin:0 auto; }
+
+/* Plan cards */
+.up-plans { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2.5rem; }
+@media(max-width:640px){ .up-plans { grid-template-columns:1fr; } }
+.plan-card {
+  background:#fff; border:2px solid var(--border); border-radius:20px;
+  padding:2rem; display:flex; flex-direction:column; position:relative;
+  transition:box-shadow .2s, border-color .2s;
+}
+.plan-card:hover { box-shadow:0 8px 32px rgba(0,0,0,.08); }
+.plan-card.pro {
+  background:linear-gradient(160deg,#0f172a,#1e293b);
+  border-color:var(--gold);
+  box-shadow:0 0 0 1px rgba(212,175,55,.3), 0 20px 60px rgba(212,175,55,.12);
+}
+.plan-tier { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.12em; margin-bottom:1rem; }
+.plan-tier.free { color:var(--text-muted); }
+.plan-tier.pro  { color:var(--gold); }
+.plan-price { display:flex; align-items:flex-end; gap:.3rem; margin-bottom:.25rem; }
+.plan-price .amount     { font-size:3rem; font-weight:900; line-height:1; }
+.plan-price .period     { font-size:.875rem; margin-bottom:.5rem; }
+.plan-card.free-card .amount { color:var(--gray-dark); }
+.plan-card.free-card .period { color:var(--text-muted); }
+.plan-card.pro .amount  { color:#fff; }
+.plan-card.pro .period  { color:rgba(255,255,255,.45); }
+.plan-sub { font-size:.85rem; margin-bottom:1.75rem; }
+.plan-card.free-card .plan-sub { color:var(--text-muted); }
+.plan-card.pro .plan-sub { color:rgba(255,255,255,.45); }
+.plan-features { list-style:none; display:flex; flex-direction:column; gap:.7rem; flex:1; margin-bottom:1.75rem; }
+.plan-feat { display:flex; align-items:center; gap:.75rem; font-size:.9rem; }
+.plan-card.pro .plan-feat { color:rgba(255,255,255,.85); }
+.feat-check {
+  width:22px; height:22px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:800;
+}
+.feat-check.yes      { background:rgba(212,175,55,.2); border:1.5px solid var(--gold); color:var(--gold); }
+.feat-check.yes-free { background:#dcfce7; color:#15803d; font-size:.8rem; }
+.feat-check.no       { background:#fee2e2; color:#ef4444; font-size:.8rem; }
+.most-pop {
+  position:absolute; top:1.25rem; right:1.25rem;
+  background:var(--gold); color:#fff; font-size:.68rem; font-weight:800;
+  padding:.3rem .9rem; border-radius:20px; letter-spacing:.06em;
+}
+.plan-cta {
+  width:100%; padding:1rem; border:none; border-radius:12px;
+  font-weight:800; font-size:1rem; cursor:pointer; font-family:inherit;
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  transition:all .2s; letter-spacing:.01em;
+}
+.plan-cta.pay {
+  background:var(--gold); color:#fff;
+}
+.plan-cta.pay:hover { background:var(--gold-dark); transform:translateY(-1px); box-shadow:0 6px 20px rgba(212,175,55,.35); }
+.plan-cta.current { background:var(--gray-light); color:var(--text-muted); cursor:default; }
+.plan-cta.active-pro { background:rgba(212,175,55,.2); color:var(--gold); border:1.5px solid var(--gold); cursor:default; }
+.plan-secure { text-align:center; font-size:.75rem; color:rgba(255,255,255,.4); margin-top:.75rem; display:flex; align-items:center; justify-content:center; gap:.35rem; }
+
+/* Feature showcase */
+.feat-showcase { display:grid; grid-template-columns:repeat(3,1fr); gap:1.25rem; margin-bottom:2.5rem; }
+@media(max-width:640px){ .feat-showcase { grid-template-columns:1fr; } }
+.feat-box {
+  background:#fff; border:1px solid var(--border); border-radius:14px;
+  padding:1.5rem; text-align:center; transition:border-color .2s, box-shadow .2s;
+}
+.feat-box:hover { border-color:var(--gold); box-shadow:0 4px 20px rgba(212,175,55,.12); }
+.feat-box .icon { font-size:2.25rem; margin-bottom:.75rem; }
+.feat-box h4 { font-weight:800; font-size:.95rem; margin-bottom:.35rem; }
+.feat-box p  { font-size:.8rem; color:var(--text-muted); line-height:1.5; }
+
+/* Promoted add-ons */
+.promo-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+@media(max-width:640px){ .promo-cards { grid-template-columns:1fr; } }
+.promo-card {
+  border:2px solid var(--border); border-radius:14px; padding:1.5rem;
+  text-align:center; transition:border-color .2s, box-shadow .2s, transform .15s;
+}
+.promo-card:hover { border-color:var(--gold); box-shadow:0 4px 20px rgba(212,175,55,.14); transform:translateY(-2px); }
+.promo-icon  { font-size:2rem; margin-bottom:.5rem; }
+.promo-days  { font-weight:800; font-size:1rem; margin-bottom:.25rem; }
+.promo-price { font-size:2rem; font-weight:900; color:var(--gold); line-height:1; margin-bottom:.875rem; }
+.promo-btn {
+  display:block; background:var(--gold); color:#fff; padding:.55rem 1rem;
+  border-radius:8px; font-weight:700; font-size:.85rem; text-decoration:none;
+  transition:background .2s;
+}
+.promo-btn:hover { background:var(--gold-dark); }
+
+/* Overlay spinner */
+.ps-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.6);
+  z-index:9999; align-items:center; justify-content:center;
+}
+.ps-overlay.show { display:flex; }
+.ps-spinner-box {
+  background:#fff; border-radius:20px; padding:2.75rem 3.5rem;
+  text-align:center; box-shadow:0 30px 80px rgba(0,0,0,.3);
+}
+.ps-spin {
+  width:52px; height:52px; border:4px solid var(--gold-light);
+  border-top-color:var(--gold); border-radius:50%;
+  animation:spin .75s linear infinite; margin:0 auto 1.25rem;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sd-wrap">
+
+  <!-- Paystack loading overlay -->
+  <div class="ps-overlay" id="psOverlay">
+    <div class="ps-spinner-box">
+      <div class="ps-spin"></div>
+      <div style="font-weight:700;font-size:1.05rem;color:var(--gray-dark)">Connecting to Paystack…</div>
+      <div style="font-size:.85rem;color:var(--text-muted);margin-top:.3rem">Please wait</div>
+    </div>
+  </div>
+
+  <div class="sd-grid">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sd-sidebar">
+
+      <!-- Profile card -->
+      <div class="sd-profile-card">
+        <div class="sd-logo">
+          {% if brand.logo %}<img src="{{ brand.logo.url }}" alt="{{ brand.name }}">{% else %}🏪{% endif %}
+        </div>
+        <div class="sd-brand-name">{{ brand.name }}</div>
+        <div class="sd-email">{{ user.email }}</div>
+        <div class="sd-badges">
+          {% if brand.is_verified %}<span class="badge-verified">✓ Blue Tick</span>{% endif %}
+          {% if brand.is_pro %}<span class="badge-pro">⭐ PRO</span>{% else %}<span class="badge-free">FREE</span>{% endif %}
+          {% if not user.student_verified %}<span class="badge-pending">⚠ ID Pending</span>{% endif %}
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="sd-nav">
+        <button class="sd-nav-item active" data-panel="products">
+          <span class="nav-icon">📦</span> Products
+          {% if products %}<span class="sd-nav-badge">{{ products|length }}</span>{% endif %}
+        </button>
+        <button class="sd-nav-item" data-panel="orders">
+          <span class="nav-icon">🛒</span> Orders
+          {% if orders %}<span class="sd-nav-badge">{{ orders|length }}</span>{% endif %}
+        </button>
+        <button class="sd-nav-item" data-panel="wallet">
+          <span class="nav-icon">💰</span> Wallet
+        </button>
+        <button class="sd-nav-item" data-panel="analytics">
+          <span class="nav-icon">📊</span> Analytics
+        </button>
+        <hr class="sd-nav-divider">
+        <button class="sd-nav-item" data-panel="add-product">
+          <span class="nav-icon">➕</span> Add Product
+        </button>
+        <button class="sd-nav-item" data-panel="store">
+          <span class="nav-icon">⚙️</span> Store Settings
+        </button>
+        <button class="sd-nav-item" data-panel="notifications">
+          <span class="nav-icon">🔔</span> Notifications
+          {% if notifications %}<span class="sd-nav-badge" style="background:#ef4444">{{ notifications|length }}</span>{% endif %}
+        </button>
+        <hr class="sd-nav-divider">
+        <button class="sd-nav-item {% if not brand.is_pro %}{% endif %}" data-panel="upgrade" style="{% if not brand.is_pro %}color:var(--gold){% endif %}">
+          <span class="nav-icon">⭐</span> Upgrade to Pro
+          {% if not brand.is_pro %}<span class="sd-nav-badge">NEW</span>{% endif %}
+        </button>
+        <hr class="sd-nav-divider">
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+          <button type="submit" class="sd-nav-item" style="color:#ef4444">
+            <span class="nav-icon">🚪</span> Logout
+          </button>
+        </form>
+      </nav>
+    </aside>
+
+    <!-- ── Main panels ── -->
+    <main>
+
+      <!-- PRODUCTS -->
+      <div class="sd-panel active" id="panel-products">
+        <div class="sd-panel-title">Your Products</div>
+        <div class="sd-panel-sub">Manage your listings · {{ products|length }} product{{ products|length|pluralize }}</div>
+
+        {% if not brand.is_pro %}
+        <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:.875rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+          <span style="font-size:.875rem"><strong>Free tier:</strong> {{ brand.products_remaining }} of {{ brand.FREE_PRODUCT_LIMIT }} slots left</span>
+          <button onclick="showPanel('upgrade')" style="background:none;border:none;color:var(--gold);font-weight:700;cursor:pointer;font-size:.875rem">Upgrade to Pro →</button>
+        </div>
+        {% endif %}
+
+        <div class="sd-search">
+          <svg class="sd-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="pdSearch" placeholder="Search products…" class="input-field" oninput="filterProducts(this.value)">
+        </div>
+
+        {% if products %}
+        <div class="pd-grid" id="pdGrid">
+          {% for p in products %}
+          <div class="pd-card product-row" data-name="{{ p.name|lower }}">
+            <div class="pd-card-img">
+              {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}">{% else %}📦{% endif %}
+              <span class="pd-status-pill pd-status-{{ p.status }}">{{ p.get_status_display }}</span>
+            </div>
+            <div class="pd-body">
+              <div class="pd-brand-tag">{{ p.category.name|default:"Uncategorised" }}</div>
+              <div class="pd-name">{{ p.name }}</div>
+              <div class="pd-price-row">
+                <span class="pd-orig">₦{{ p.original_price|floatformat:0 }}</span>
+                <span class="pd-price">₦{{ p.price|floatformat:0 }}</span>
+              </div>
+              {% if p.discount %}<div class="pd-disc">{{ p.discount }}% off</div>{% endif %}
+              <div class="pd-stock-box">
+                <strong>Stock: {{ p.stock }} units</strong>
+                {% if p.stock == 0 %}<span style="color:#ef4444;font-weight:700"> · Out of stock</span>
+                {% elif p.stock < 10 %}<span style="color:#f59e0b;font-weight:700"> · ⚠ Low stock</span>{% endif %}
+              </div>
+              <div class="pd-meta-row">
+                <span>📊 {{ p.sales }} sales</span>
+                {% if p.average_rating %}<span style="color:var(--gold)">⭐ {{ p.average_rating }}</span>{% endif %}
+              </div>
+              <div class="pd-actions">
+                <a href="{% url 'edit_product' p.id %}" class="pd-btn-edit">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>
+                  Edit
+                </a>
+                <form method="post" action="{% url 'edit_product' p.id %}" style="flex:1" onsubmit="return confirm('Delete {{ p.name }}?')">
+                  {% csrf_token %}<input type="hidden" name="action" value="delete">
+                  <button type="submit" class="pd-btn-del" style="width:100%">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📦</div>
+          <h3>No products yet</h3>
+          <p class="text-muted">Add your first product to start selling</p>
+          <button onclick="showPanel('add-product')" class="btn-gold" style="margin-top:1rem">➕ Add Product</button>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ORDERS -->
+      <div class="sd-panel" id="panel-orders">
+        <div class="sd-panel-title">Orders</div>
+        <div class="sd-panel-sub">{{ orders|length }} sub-order{{ orders|length|pluralize }} assigned to your store</div>
+
+        {% if orders %}
+        {% for order in orders %}
+        <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1rem;transition:box-shadow .2s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+
+          <!-- Header -->
+          <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;background:{% if order.status == 'confirmed' %}linear-gradient(135deg,#f0fdf4,#dcfce7){% elif order.status == 'paid' %}linear-gradient(135deg,#fffbeb,#fef9c3){% else %}var(--gray-light){% endif %}">
+            <div>
+              <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+                <strong style="font-size:.95rem">#{{ order.pk }}</strong>
+                <span class="ord-status ord-{{ order.status }}">
+                  {% if order.status == 'paid' %}🔒 Paid — Escrow
+                  {% elif order.status == 'shipped' %}📦 Shipped
+                  {% elif order.status == 'confirmed' %}✅ Funds Released
+                  {% elif order.status == 'cancelled' %}❌ Cancelled
+                  {% else %}{{ order.get_status_display }}{% endif %}
+                </span>
+                <span style="font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:20px;{% if order.hub_status == 'pending_vendor_shipment' %}background:#fef9c3;color:#92400e{% elif order.hub_status == 'in_transit_to_hub' %}background:#dbeafe;color:#1d4ed8{% elif order.hub_status == 'received_at_hub' %}background:#dcfce7;color:#15803d{% else %}background:#e0e7ff;color:#4338ca{% endif %}">
+                  {% if order.hub_status == 'pending_vendor_shipment' %}⏳ Drop at Hub
+                  {% elif order.hub_status == 'in_transit_to_hub' %}🚚 In Transit
+                  {% elif order.hub_status == 'received_at_hub' %}✓ At Hub
+                  {% else %}📦 Packaged{% endif %}
+                </span>
+              </div>
+              <div style="font-size:.8rem;color:var(--text-muted);margin-top:.2rem">
+                {{ order.created_at|date:"N j, Y · g:i A" }} · {{ order.buyer.first_name|default:order.buyer.username }}
+                {% if order.master_order and order.master_order.hub_bin %} · Bin: <span style="font-family:monospace;font-weight:700;color:var(--gold)">{{ order.master_order.hub_bin }}</span>{% endif %}
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:800;font-size:1rem;color:var(--gold)">₦{{ order.vendor_payout|floatformat:0 }}</div>
+              <div style="font-size:.72rem;color:var(--text-muted)">After {{ brand.commission_rate }}% commission</div>
+            </div>
+          </div>
+
+          <!-- Items -->
+          <div style="padding:.75rem 1.25rem;border-bottom:1px solid var(--border)">
+            {% for item in order.items.all %}
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.3rem 0">
+              <div style="width:30px;height:30px;border-radius:5px;background:var(--gray-light);display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;overflow:hidden">
+                {% if item.product and item.product.image %}<img src="{{ item.product.image.url }}" style="width:100%;height:100%;object-fit:cover">{% else %}📦{% endif %}
+              </div>
+              <div style="flex:1;font-size:.875rem"><span style="font-weight:600">{{ item.product_name }}</span> <span style="color:var(--text-muted)">× {{ item.quantity }}</span></div>
+              <div style="font-weight:700;font-size:.875rem">₦{{ item.line_total|floatformat:0 }}</div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- Hub instructions + actions -->
+          <div style="padding:.875rem 1.25rem">
+            {% if order.hub_status == 'pending_vendor_shipment' and order.status == 'paid' %}
+            <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:.875rem;margin-bottom:.75rem;font-size:.85rem">
+              <div style="font-weight:700;color:#92400e;margin-bottom:.2rem">📋 Action Required</div>
+              <div style="color:#78350f">Package this order and <strong>drop it at the OJA Hub desk</strong>. The hub team scans it in and combines it with other vendors into one bag for the buyer.</div>
+            </div>
+            {% elif order.hub_status == 'received_at_hub' %}
+            <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:.875rem;margin-bottom:.75rem;font-size:.85rem;color:#15803d">
+              ✓ Received at hub {{ order.hub_received_at|date:"g:i A, N j"|default:"" }} · Waiting for other vendors before dispatch.
+            </div>
+            {% endif %}
+            {% if order.master_order %}
+            <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.75rem">
+              Consolidated delivery: {{ order.master_order.arrived_count }}/{{ order.master_order.total_sub_orders }} vendors at hub
+              {% if order.master_order.delivery_zone %} · 🛵 {{ order.master_order.delivery_zone.name }}{% endif %}
+            </div>
+            {% endif %}
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+              {% if order.status == 'paid' and order.hub_status == 'pending_vendor_shipment' %}
+              <form method="post" action="{% url 'mark_order_shipped' order.pk %}">{% csrf_token %}
+                <button type="submit" class="btn-gold" style="font-size:.85rem;padding:.45rem 1rem">📦 I've Dropped at Hub</button>
+              </form>
+              {% endif %}
+              <a href="{% url 'order_detail' order.pk %}" class="btn-outline" style="font-size:.85rem;padding:.45rem 1rem">View Details</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% else %}
+        <div class="empty-state"><div class="empty-icon">🛒</div><p>No orders yet.</p></div>
+        {% endif %}
+      </div>
+
+      <!-- WALLET -->
+      <div class="sd-panel" id="panel-wallet">
+        <div class="sd-panel-title">Wallet</div>
+        <div class="sd-panel-sub">Track your earnings and request payouts</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem">
+          <div class="wlt-card wlt-available">
+            <div class="wlt-label">Available</div>
+            <div class="wlt-amount">₦{{ brand.wallet_balance|floatformat:2 }}</div>
+            <div class="wlt-sub">Ready to withdraw</div>
+          </div>
+          <div class="wlt-card wlt-pending">
+            <div class="wlt-label">In Escrow</div>
+            <div class="wlt-amount">₦{{ brand.wallet_pending|floatformat:2 }}</div>
+            <div class="wlt-sub">Awaiting delivery confirmation</div>
+          </div>
+          <div class="wlt-card wlt-earned">
+            <div class="wlt-label">Total Earned</div>
+            <div class="wlt-amount">₦{{ brand.wallet_total_earned|floatformat:2 }}</div>
+            <div class="wlt-sub">After {{ brand.commission_rate }}% commission</div>
+          </div>
+        </div>
+        <div class="card card-body" style="max-width:480px;margin-bottom:2rem">
+          <h3 style="font-weight:700;margin-bottom:1rem">Request Withdrawal</h3>
+          {% if brand.seller.bank_name %}
+          <div style="background:var(--gray-light);border-radius:8px;padding:.875rem;margin-bottom:1rem;font-size:.875rem">
+            🏦 <strong>{{ brand.seller.bank_name }}</strong> · {{ brand.seller.account_number }}<br>
+            <span class="text-muted">{{ brand.seller.account_holder_name }}</span>
+          </div>
+          {% else %}
+          <div style="background:#fee2e2;border-radius:8px;padding:.875rem;margin-bottom:1rem;font-size:.875rem;color:#b91c1c">
+            ⚠️ No bank details. <button onclick="showPanel('store')" style="background:none;border:none;color:var(--gold);font-weight:700;cursor:pointer">Add in Store Settings →</button>
+          </div>
+          {% endif %}
+          <form method="post">{% csrf_token %}
+            <input type="hidden" name="action" value="request_withdrawal">
+            <div class="form-group"><label>Amount (₦)</label>{{ withdrawal_form.amount }}</div>
+            <button type="submit" class="btn-gold" {% if not brand.seller.bank_name %}disabled style="opacity:.5"{% endif %}>Request Payout</button>
+          </form>
+        </div>
+        {% if withdrawals %}
+        <h4 style="font-weight:700;margin-bottom:.75rem">Withdrawal History</h4>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Amount</th><th>Status</th><th>Requested</th><th>Note</th></tr></thead>
+            <tbody>{% for w in withdrawals %}<tr>
+              <td>₦{{ w.amount|floatformat:0 }}</td>
+              <td><span class="tag">{{ w.get_status_display }}</span></td>
+              <td>{{ w.requested_at|date:"N j, Y" }}</td>
+              <td>{{ w.admin_note|default:"—" }}</td>
+            </tr>{% endfor %}</tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ANALYTICS -->
+      <div class="sd-panel" id="panel-analytics">
+        <div class="sd-panel-title">Analytics</div>
+        <div class="sd-panel-sub">Your store performance at a glance</div>
+        <div class="sd-stats">
+          <div class="sd-stat"><div class="sd-stat-val">{{ products|length }}</div><div class="sd-stat-label">Products Listed</div></div>
+          <div class="sd-stat"><div class="sd-stat-val">{{ total_sales }}</div><div class="sd-stat-label">Total Sales</div></div>
+          <div class="sd-stat"><div class="sd-stat-val" style="font-size:1.25rem">₦{{ brand.wallet_total_earned|floatformat:0 }}</div><div class="sd-stat-label">Revenue Earned</div></div>
+          <div class="sd-stat"><div class="sd-stat-val">{{ brand.follower_count }}</div><div class="sd-stat-label">Followers</div></div>
+        </div>
+        {% if not brand.is_pro %}
+        <div style="background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:14px;padding:2rem;color:#fff;text-align:center">
+          <div style="font-size:2rem;margin-bottom:.5rem">📊</div>
+          <h3 style="font-weight:800;color:#fff;margin-bottom:.5rem">Advanced Analytics — Pro Only</h3>
+          <p style="color:rgba(255,255,255,.55);font-size:.875rem;margin-bottom:1.25rem">Upgrade to Pro to unlock detailed sales charts, customer insights, and revenue forecasts</p>
+          <button onclick="showPanel('upgrade')" class="plan-cta pay" style="display:inline-flex;width:auto;padding:.75rem 2rem">Upgrade to Pro →</button>
+        </div>
+        {% else %}
+        <div style="background:var(--gray-light);border-radius:12px;padding:2rem;text-align:center;color:var(--text-muted)">
+          <div style="font-size:2rem;margin-bottom:.5rem">🚧</div>
+          <p>Detailed analytics charts coming soon!</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ADD PRODUCT -->
+      <div class="sd-panel" id="panel-add-product">
+        <div class="sd-panel-title">Add New Product</div>
+        <div class="sd-panel-sub">List a new item in your store</div>
+        {% if not brand.can_add_product %}
+        <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;padding:2rem;text-align:center">
+          <div style="font-size:2.5rem;margin-bottom:.75rem">🚫</div>
+          <h3 style="font-weight:700;margin-bottom:.5rem">Free Tier Limit Reached</h3>
+          <p class="text-muted" style="margin-bottom:1.25rem">You've used all {{ brand.FREE_PRODUCT_LIMIT }} product slots on the free plan.</p>
+          <button onclick="showPanel('upgrade')" class="plan-cta pay" style="display:inline-flex;width:auto;padding:.75rem 2rem">Upgrade to Pro — ₦5,000/mo</button>
+        </div>
+        {% else %}
+        {% if product_form.errors %}
+        <div style="background:#fee2e2;border:1.5px solid #fca5a5;border-radius:10px;padding:1rem;margin-bottom:1.25rem">
+          <div style="font-weight:700;color:#b91c1c;margin-bottom:.5rem">⚠ Fix these errors:</div>
+          {% for field in product_form %}{% for err in field.errors %}<div style="font-size:.875rem;color:#b91c1c">• {{ field.label }}: {{ err }}</div>{% endfor %}{% endfor %}
+        </div>
+        {% endif %}
+        <div style="max-width:620px">
+          <form method="post" enctype="multipart/form-data">{% csrf_token %}
+            <input type="hidden" name="action" value="add_product">
+            <div class="form-row">
+              <div class="form-group"><label>Product Name</label>{{ product_form.name }}</div>
+              <div class="form-group"><label>Category</label>{{ product_form.category }}</div>
+            </div>
+            <div class="form-group"><label>Description</label>{{ product_form.description }}</div>
+            <div class="form-row">
+              <div class="form-group"><label>Sale Price (₦)</label>{{ product_form.price }}</div>
+              <div class="form-group"><label>Original Price (₦)</label>{{ product_form.original_price }}<div id="discPreview" style="font-size:.75rem;color:var(--gold);margin-top:.3rem"></div></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Stock</label>{{ product_form.stock }}</div>
+              <div class="form-group"><label>Status</label>{{ product_form.status }}</div>
+            </div>
+            <div style="background:var(--gray-light);border-radius:10px;padding:1.25rem;margin-bottom:1.25rem">
+              <h4 style="font-weight:700;font-size:.9rem;margin-bottom:1rem">📸 Product Media</h4>
+              <div class="form-group"><label>Cover Image</label>{{ product_form.image }}</div>
+              <div class="form-group"><label>Additional Photos (up to 5)</label>
+                <input type="file" name="extra_images" multiple accept="image/*" class="input-field" id="extraInput">
+                <div id="extraPrev" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem"></div>
+              </div>
+              <div class="form-group" style="margin-bottom:0"><label>Product Video (optional)</label>
+                <input type="file" name="product_video" accept="video/*" class="input-field" id="vidInput">
+                <div id="vidPrev"></div>
+              </div>
+            </div>
+            <div class="form-group"><label>Shipping Info</label>{{ product_form.shipping_info }}</div>
+            <div class="form-row">
+              <div class="form-group"><label>Warranty</label>{{ product_form.warranty }}</div>
+              <div class="form-group"><label>Return Policy</label>{{ product_form.return_policy }}</div>
+            </div>
+            <button type="submit" class="btn-gold">List Product</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- STORE SETTINGS -->
+      <div class="sd-panel" id="panel-store">
+        <div class="sd-panel-title">Store Settings</div>
+        <div class="sd-panel-sub">Update your store profile, social links and bank details</div>
+        <div style="max-width:620px">
+          <form method="post" enctype="multipart/form-data">{% csrf_token %}
+            <input type="hidden" name="action" value="update_brand">
+            <div class="form-group"><label>Store Name</label>{{ brand_form.name }}</div>
+            <div class="form-group"><label>Description</label>{{ brand_form.description }}</div>
+            <div class="form-group"><label>Logo</label>{{ brand_form.logo }}
+              {% if brand.logo %}<img src="{{ brand.logo.url }}" style="height:52px;margin-top:.5rem;border-radius:6px">{% endif %}
+            </div>
+            <div class="form-group"><label>Location</label>{{ brand_form.location }}</div>
+            <div class="form-row">
+              <div class="form-group"><label>WhatsApp</label>{{ brand_form.whatsapp }}</div>
+              <div class="form-group"><label>Instagram</label>{{ brand_form.instagram }}</div>
+              <div class="form-group"><label>Twitter</label>{{ brand_form.twitter }}</div>
+              <div class="form-group"><label>TikTok</label>{{ brand_form.tiktok }}</div>
+            </div>
+            <button type="submit" class="btn-gold">Save Changes</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="sd-panel" id="panel-notifications">
+        <div class="sd-panel-title">Notifications</div>
+        <div class="sd-panel-sub">Alerts about your orders, wallet and store</div>
+        {% if notifications %}
+          {% for notif in notifications %}
+          <div class="notif-item {% if not notif.is_read %}unread{% endif %}">
+            <div class="notif-icon">{% if notif.notification_type == 'sale' %}💰{% elif notif.notification_type == 'escrow' %}🔒{% elif notif.notification_type == 'verification' %}✅{% elif notif.notification_type == 'withdrawal' %}🏦{% else %}🔔{% endif %}</div>
+            <div style="flex:1">
+              <div class="notif-title">{{ notif.title }}</div>
+              <div style="font-size:.875rem;color:var(--text-muted)">{{ notif.message }}</div>
+              <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">{{ notif.created_at|date:"N j, Y" }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
+              {% if not notif.is_read %}<form method="post" action="{% url 'mark_notification_read' notif.id %}">{% csrf_token %}<button type="submit" class="btn-outline-sm">✓</button></form>{% endif %}
+              <form method="post" action="{% url 'delete_notification' notif.id %}">{% csrf_token %}<button type="submit" class="btn-danger" style="padding:.25rem .5rem;font-size:.75rem">✕</button></form>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+        <div class="empty-state"><div class="empty-icon">🔔</div><p>No notifications.</p></div>
+        {% endif %}
+      </div>
+
+      <!-- ── UPGRADE ── -->
+      <div class="sd-panel" id="panel-upgrade">
+
+        <!-- Hero banner -->
+        <div class="up-hero">
+          <div class="up-hero-tag">⭐ OJA PRO</div>
+          <h2>Unlock Your Full<br>Selling Potential</h2>
+          <p>Join Pro sellers getting more visibility, more sales, and the trust badge that converts buyers</p>
+        </div>
+
+        <!-- Feature showcase (only for non-pro) -->
+        {% if not brand.is_pro %}
+        <div class="feat-showcase">
+          <div class="feat-box"><div class="icon">♾️</div><h4>Unlimited Listings</h4><p>List as many products as you want — no cap, ever</p></div>
+          <div class="feat-box"><div class="icon">✅</div><h4>Blue Tick Badge</h4><p>Admin-verified store badge that builds buyer trust instantly</p></div>
+          <div class="feat-box"><div class="icon">🔝</div><h4>Top Placement</h4><p>Your store appears first on homepage and search results</p></div>
+        </div>
+        {% endif %}
+
+        <!-- Plan cards -->
+        <div class="up-plans">
+
+          <!-- FREE -->
+          <div class="plan-card free-card">
+            <div class="plan-tier free">Free Tier</div>
+            <div class="plan-price">
+              <span class="amount">₦0</span>
+            </div>
+            <div class="plan-sub">Forever free · No card needed</div>
+            <ul class="plan-features">
+              <li class="plan-feat"><span class="feat-check yes-free">✓</span> Up to {{ brand.FREE_PRODUCT_LIMIT }} product listings</li>
+              <li class="plan-feat"><span class="feat-check yes-free">✓</span> Basic store profile</li>
+              <li class="plan-feat"><span class="feat-check yes-free">✓</span> Campus delivery support</li>
+              <li class="plan-feat"><span class="feat-check no">✕</span> <span style="opacity:.5">No Blue Tick badge</span></li>
+              <li class="plan-feat"><span class="feat-check no">✕</span> <span style="opacity:.5">No priority placement</span></li>
+              <li class="plan-feat"><span class="feat-check no">✕</span> <span style="opacity:.5">No analytics</span></li>
+            </ul>
+            {% if not brand.is_pro %}
+            <button class="plan-cta current" disabled>Current Plan</button>
+            {% endif %}
+          </div>
+
+          <!-- PRO -->
+          <div class="plan-card pro">
+            <span class="most-pop">MOST POPULAR</span>
+            <div class="plan-tier pro">Pro Plan</div>
+            <div class="plan-price">
+              <span class="amount">₦5,000</span>
+              <span class="period">/month</span>
+            </div>
+            <div class="plan-sub">Billed monthly · Cancel anytime</div>
+            <ul class="plan-features">
+              {% for feat in pro_features %}
+              <li class="plan-feat">
+                <span class="feat-check yes">✓</span>
+                {% if forloop.first %}<strong style="color:#fff">{{ feat }}</strong>{% else %}{{ feat }}{% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+
+            {% if brand.is_pro %}
+            <button class="plan-cta active-pro" disabled>
+              ✓ Pro Active{% if brand.tier_expires_at %} · {{ brand.tier_expires_at|date:"N j, Y" }}{% endif %}
+            </button>
+            {% if not brand.is_verified %}
+            <div style="margin-top:.75rem;background:rgba(59,130,246,.15);border-radius:10px;padding:.875rem;text-align:center;font-size:.85rem;color:#93c5fd;font-weight:600">🔵 Blue Tick verification pending admin review</div>
+            {% else %}
+            <div style="margin-top:.75rem;background:rgba(29,78,216,.2);border-radius:10px;padding:.875rem;text-align:center;font-size:.85rem;color:#93c5fd;font-weight:700">✓ Blue Tick Verified</div>
+            {% endif %}
+            {% else %}
+            <button id="upgradeBtn" onclick="initiateUpgrade()" class="plan-cta pay">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              Pay ₦5,000 with Paystack
+            </button>
+            <div class="plan-secure">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Secured by Paystack · Instant activation
+            </div>
+            {% endif %}
+          </div>
+
+        </div>
+
+        <!-- Promoted Listings add-on -->
+        <div style="margin-top:1rem">
+          <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
+            <h3 style="font-weight:800;font-size:1.05rem">🔝 Promoted Listings</h3>
+            <span style="background:rgba(212,175,55,.12);color:var(--gold);font-size:.7rem;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid rgba(212,175,55,.3)">ADD-ON</span>
+          </div>
+          <p style="color:var(--text-muted);font-size:.875rem;margin-bottom:1.25rem">Pin your store to the top of the homepage and search results</p>
+          <div class="promo-cards">
+            {% for key, price in promo_rates.items %}
+            <div class="promo-card">
+              <div class="promo-icon">{% if key == 'brand_7' %}⚡{% elif key == 'brand_14' %}🚀{% else %}🏆{% endif %}</div>
+              <div class="promo-days">{% if key == 'brand_7' %}7 Days{% elif key == 'brand_14' %}14 Days{% else %}30 Days{% endif %}</div>
+              <div class="promo-price">₦{{ price }}</div>
+              <a href="mailto:admin@oja.campus?subject=Promo — {{ brand.name }}&body={{ key }}" class="promo-btn">Get Promoted</a>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div><!-- /panel-upgrade -->
+
+    </main>
+  </div>
+</div>
+
+<script>
+// ── Panel switching ──
+function showPanel(name) {
+  document.querySelectorAll('.sd-nav-item').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.sd-panel').forEach(function(p){ p.classList.remove('active'); });
+  var btn = document.querySelector('[data-panel="' + name + '"]');
+  if (btn) btn.classList.add('active');
+  var panel = document.getElementById('panel-' + name);
+  if (panel) panel.classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.querySelectorAll('.sd-nav-item[data-panel]').forEach(function(btn) {
+  btn.addEventListener('click', function() { showPanel(this.dataset.panel); });
+});
+{% if product_form.errors %}showPanel('add-product');{% endif %}
+
+// ── Product search ──
+function filterProducts(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.product-row').forEach(function(r) {
+    r.style.display = r.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+
+// ── Discount preview ──
+var priceEl = document.querySelector('[name="price"]');
+var origEl  = document.querySelector('[name="original_price"]');
+var discPrev = document.getElementById('discPreview');
+function updateDisc() {
+  var p = parseFloat(priceEl && priceEl.value) || 0;
+  var o = parseFloat(origEl && origEl.value) || 0;
+  if (o > p && p > 0) discPrev.textContent = '→ ' + Math.round(((o-p)/o)*100) + '% discount auto-applied';
+  else discPrev.textContent = '';
+}
+if (priceEl) priceEl.addEventListener('input', updateDisc);
+if (origEl)  origEl.addEventListener('input', updateDisc);
+
+// ── Extra image preview ──
+var extraIn  = document.getElementById('extraInput');
+var extraPrev = document.getElementById('extraPrev');
+if (extraIn) extraIn.addEventListener('change', function() {
+  extraPrev.innerHTML = '';
+  Array.from(this.files).slice(0,5).forEach(function(f) {
+    var img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:2px solid var(--border)';
+    extraPrev.appendChild(img);
+  });
+});
+
+// ── Video preview ──
+var vidIn   = document.getElementById('vidInput');
+var vidPrev = document.getElementById('vidPrev');
+if (vidIn) vidIn.addEventListener('change', function() {
+  vidPrev.innerHTML = this.files[0]
+    ? '<video src="' + URL.createObjectURL(this.files[0]) + '" controls style="width:100%;max-width:300px;border-radius:8px;margin-top:.5rem"></video>'
+    : '';
+});
+
+// ── Paystack Pro Upgrade ──
+function getCsrf() {
+  var v = '; ' + document.cookie, p = v.split('; csrftoken=');
+  return p.length === 2 ? p.pop().split(';').shift() : '';
+}
+function initiateUpgrade() {
+  var btn = document.getElementById('upgradeBtn');
+  var overlay = document.getElementById('psOverlay');
+  if (btn) btn.disabled = true;
+  overlay.classList.add('show');
+
+  fetch('{% url "upgrade_initiate" %}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+    body: JSON.stringify({}),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    overlay.classList.remove('show');
+    if (data.error) { alert('Error: ' + data.error); if (btn) btn.disabled = false; return; }
+
+    var handler = PaystackPop.setup({
+      key:      '{{ PAYSTACK_PUBLIC_KEY }}',
+      email:    data.email,
+      amount:   data.amount,
+      ref:      data.reference,
+      currency: 'NGN',
+      label:    'OJA Campus Pro — ₦5,000/month',
+      metadata: { custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: 'Pro Monthly' }] },
+      onClose: function() { if (btn) btn.disabled = false; },
+      callback: function(response) {
+        overlay.classList.add('show');
+        window.location.href = '{% url "upgrade_verify" %}?reference=' + response.reference;
+      }
+    });
+    handler.openIframe();
+  })
+  .catch(function() {
+    overlay.classList.remove('show');
+    if (btn) btn.disabled = false;
+    alert('Something went wrong. Please try again.');
+  });
+}
+</script>
+{% endblock %}
