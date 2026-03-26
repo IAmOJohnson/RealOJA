@@ -186,15 +186,16 @@
     <div class="hero-right">
       <img src="{% static 'img/oja_logo.png' %}" alt="OJA" class="hero-logo-big">
       <div class="hero-float-card c1">
-        <div class="hero-float-val">✓ Verified</div>
+        <div class="hero-float-val">🔒 Escrow</div>
         <div class="hero-float-label">Your money is safe</div>
-        </div>
       </div>
       <div class="hero-float-card c2">
         <div class="hero-float-val">🛵 One Bag</div>
         <div class="hero-float-label">All vendors, one drop</div>
       </div>
-
+      <div class="hero-float-card c3">
+        <div class="hero-float-val">✓ Verified</div>
+        <div class="hero-float-label">Trusted sellers</div>
       </div>
     </div>
   </div>
@@ -206,20 +207,49 @@
     <span>Campus Delivery</span><span class="marquee-dot">·</span>
     <span>Escrow Protected</span><span class="marquee-dot">·</span>
     <span>Verified Sellers</span><span class="marquee-dot">·</span>
-    <span></span><span class="marquee-dot">·</span>
+    <span>One OJA Bag</span><span class="marquee-dot">·</span>
     <span>Paystack Secured</span><span class="marquee-dot">·</span>
-    <span>Verified Stores</span><span class="marquee-dot">·</span>
+    <span>Blue Tick Stores</span><span class="marquee-dot">·</span>
     <span>Campus Delivery</span><span class="marquee-dot">·</span>
     <span>Escrow Protected</span><span class="marquee-dot">·</span>
     <span>Verified Sellers</span><span class="marquee-dot">·</span>
-    <span></span><span class="marquee-dot">·</span>
+    <span>One OJA Bag</span><span class="marquee-dot">·</span>
     <span>Paystack Secured</span><span class="marquee-dot">·</span>
-    <span></span><span class="marquee-dot">·</span>
+    <span>Blue Tick Stores</span><span class="marquee-dot">·</span>
   </div>
 </div>
 
-
-
+<!-- ── HOW IT WORKS ── -->
+<section style="background:#fafafa;padding:5rem 0;border-bottom:1px solid var(--border)">
+  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem">
+    <div class="sh-wrap" style="justify-content:center;text-align:center;flex-direction:column;align-items:center">
+      <div class="sh-eyebrow">How It Works</div>
+      <div class="sh-title">One checkout. One delivery.</div>
+    </div>
+    <div class="hiw-grid">
+      <div class="hiw-card" data-step="01">
+        <div class="hiw-icon">🛒</div>
+        <div class="hiw-title">Add to Cart</div>
+        <div class="hiw-desc">Shop from multiple vendors in one session — fashion, food, books, anything.</div>
+      </div>
+      <div class="hiw-card" data-step="02">
+        <div class="hiw-icon">💳</div>
+        <div class="hiw-title">Pay Securely</div>
+        <div class="hiw-desc">Your money is held in escrow via Paystack. Vendors only get paid after you confirm delivery.</div>
+      </div>
+      <div class="hiw-card" data-step="03">
+        <div class="hiw-icon">📦</div>
+        <div class="hiw-title">Hub Consolidates</div>
+        <div class="hiw-desc">All vendors drop their items at the OJA Hub. We pack everything into one OJA-branded bag.</div>
+      </div>
+      <div class="hiw-card" data-step="04">
+        <div class="hiw-icon">🛵</div>
+        <div class="hiw-title">Hostel Delivery</div>
+        <div class="hiw-desc">One rider. One bag. Delivered straight to your hostel, block, or gate.</div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ── FEATURED BRANDS ── -->
 <section style="padding:5rem 0">
@@ -232,6 +262,12 @@
       <a href="{% url 'brands' %}" class="btn-outline">View All Brands →</a>
     </div>
 
+    {% if user_university and nearby_brands %}
+    <div style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Near You — {{ user_university }}
+    </div>
+    {% endif %}
     {% if brands %}
     <div class="brand-grid">
       {% for brand in brands|slice:":8" %}
@@ -344,38 +380,6 @@
   </div>
 </section>
 {% endif %}
-
-<!-- ── HOW IT WORKS ── -->
-<section style="background:#fafafa;padding:5rem 0;border-bottom:1px solid var(--border)">
-  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem">
-    <div class="sh-wrap" style="justify-content:center;text-align:center;flex-direction:column;align-items:center">
-      <div class="sh-eyebrow">How It Works</div>
-      <div class="sh-title">One checkout. One delivery.</div>
-    </div>
-    <div class="hiw-grid">
-      <div class="hiw-card" data-step="01">
-        <div class="hiw-icon">🛒</div>
-        <div class="hiw-title">Add to Cart</div>
-        <div class="hiw-desc">Shop from multiple vendors in one session — fashion, food, books, anything.</div>
-      </div>
-      <div class="hiw-card" data-step="02">
-        <div class="hiw-icon">💳</div>
-        <div class="hiw-title">Pay Securely</div>
-        <div class="hiw-desc">Your money is held in escrow via Paystack. Vendors only get paid after you confirm delivery.</div>
-      </div>
-      <div class="hiw-card" data-step="03">
-        <div class="hiw-icon">📦</div>
-        <div class="hiw-title">Hub Consolidates</div>
-        <div class="hiw-desc">All vendors drop their items at the OJA Hub. We pack everything into one OJA-branded bag.</div>
-      </div>
-      <div class="hiw-card" data-step="04">
-        <div class="hiw-icon">🛵</div>
-        <div class="hiw-title">Hostel Delivery</div>
-        <div class="hiw-desc">One rider. One bag. Delivered straight to your hostel, block, or gate.</div>
-      </div>
-    </div>
-  </div>
-</section>
 
 {% block extra_scripts %}
 <script>

@@ -172,24 +172,41 @@ class ReviewForm(forms.ModelForm):
 
 
 class CheckoutForm(forms.Form):
+    phone = forms.CharField(
+        max_length=20, required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'input-field', 'placeholder': '+234 xxx xxx xxxx',
+            'id': 'id_phone', 'type': 'tel'
+        })
+    )
     delivery_zone = forms.ModelChoiceField(
         queryset=CampusZone.objects.filter(is_active=True),
-        required=False, empty_label='-- Select delivery zone --',
+        required=True, empty_label='-- Select your delivery zone --',
         widget=forms.Select(attrs={'class': 'input-field', 'id': 'id_delivery_zone'})
     )
     delivery_address = forms.CharField(
-        max_length=300, required=False,
-        widget=forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Room / block number, hostel name'})
+        max_length=300, required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'input-field', 'id': 'id_delivery_address',
+            'placeholder': 'Room / block number, hostel name or landmark'
+        })
     )
+    delivery_lat = forms.DecimalField(required=False, max_digits=10, decimal_places=7,
+        widget=forms.HiddenInput(attrs={'id': 'id_delivery_lat'}))
+    delivery_lng = forms.DecimalField(required=False, max_digits=10, decimal_places=7,
+        widget=forms.HiddenInput(attrs={'id': 'id_delivery_lng'}))
     runner_note = forms.CharField(
         max_length=300, required=False,
-        widget=forms.Textarea(attrs={'class': 'input-field', 'rows': 2, 'placeholder': 'Any special delivery notes for the runner?'})
+        widget=forms.Textarea(attrs={'class': 'input-field', 'rows': 2, 'placeholder': 'Any notes for the runner? (optional)'})
     )
 
-    def __init__(self, *args, campus_zones=None, **kwargs):
+    def __init__(self, *args, campus_zones=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if campus_zones is not None:
             self.fields['delivery_zone'].queryset = campus_zones
+        # Pre-fill phone from user profile
+        if user and user.phone:
+            self.fields['phone'].initial = user.phone
 
 
 class WithdrawalForm(forms.Form):

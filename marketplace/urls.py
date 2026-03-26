@@ -51,6 +51,11 @@ urlpatterns = [
     # Hub / Cross-Docking
     path('hub/', views.hub_dashboard, name='hub_dashboard'),
     path('master-order/<int:master_id>/confirm/', views.confirm_master_delivery, name='confirm_master_delivery'),
+    # Support Chat
+    path('support/', views.support_chat, name='support_chat'),
+    path('support/reply/', views.support_reply, name='support_reply'),
+    # PWA offline page
+    path('offline/', views.offline_page, name='offline'),
     # Wishlist
     path('wishlist/', views.wishlist, name='wishlist'),
     # Notifications

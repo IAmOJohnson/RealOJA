@@ -9,11 +9,17 @@ from django.utils import timezone
 from decimal import Decimal
 import json
 
+from .emails import (
+    send_order_receipt, send_seller_new_order, send_order_shipped,
+    send_all_at_hub, send_order_dispatched, send_delivery_confirmed,
+    send_order_cancelled, send_dispute_raised, send_pro_upgrade_confirmation,
+    send_withdrawal_processed,
+)
 from .models import (
     User, Brand, Product, Category, CartItem, WishlistItem,
     Notification, Review, SellerVerificationRequest,
     Order, OrderItem, OrderEnquiry, MasterOrder, CampusZone, WithdrawalRequest,
-    PromotionPayment, SubscriptionPayment, ProductImage, ProductVideo,
+    PromotionPayment, SubscriptionPayment, ProductImage, ProductVideo, SupportMessage,
 )
 from .forms import (
     CustomerSignupForm, SellerSignupForm, LoginForm,
@@ -31,19 +37,44 @@ PRO_MONTHLY_PRICE = 5000
 # ─────────────────────────────────────────────
 
 def home(request):
+    # Location-aware: show brands from user's university/area first
     promoted_brands = Brand.objects.filter(is_promoted=True).prefetch_related('followers', 'products')
     promoted_products = Product.objects.filter(is_promoted=True, status='active').select_related('brand')
-    regular_brands = Brand.objects.filter(is_promoted=False).prefetch_related('followers', 'products').order_by('-created_at')
-    featured_products = Product.objects.filter(status='active', is_promoted=False).select_related('brand', 'category')[:8]
+
+    brand_qs = Brand.objects.filter(is_promoted=False).prefetch_related('followers', 'products')
+
+    # If user is authenticated and has a university set, show their campus brands first
+    nearby_brands = Brand.objects.none()
+    other_brands  = brand_qs
+    user_university = ''
+    if request.user.is_authenticated and request.user.university:
+        user_university = request.user.university
+        nearby_brands = brand_qs.filter(
+            seller__university__icontains=user_university
+        ).order_by('-is_verified', '-created_at')
+        other_brands = brand_qs.exclude(
+            seller__university__icontains=user_university
+        ).order_by('-is_verified', '-created_at')
+
+    # Merge: nearby first, then others (deduplicate)
+    if nearby_brands.exists():
+        from itertools import chain
+        all_brands = list(nearby_brands) + list(other_brands)
+    else:
+        all_brands = list(brand_qs.order_by('-is_verified', '-created_at'))
+
+    featured_products = Product.objects.filter(status='active', is_promoted=False).select_related('brand', 'category').order_by('-created_at')[:8]
     wishlist_ids = set()
     if request.user.is_authenticated:
         wishlist_ids = set(WishlistItem.objects.filter(user=request.user).values_list('product_id', flat=True))
     return render(request, 'marketplace/home.html', {
-        'promoted_brands': promoted_brands,
+        'promoted_brands':  promoted_brands,
         'promoted_products': promoted_products,
-        'brands': regular_brands,
+        'brands':           all_brands,
+        'nearby_brands':    nearby_brands,
+        'user_university':  user_university,
         'featured_products': featured_products,
-        'wishlist_ids': wishlist_ids,
+        'wishlist_ids':     wishlist_ids,
     })
 
 
@@ -597,7 +628,7 @@ def checkout(request):
         return redirect('cart')
 
     campus_zones = CampusZone.objects.filter(is_active=True).order_by('zone_type', 'name')
-    form = CheckoutForm(campus_zones=campus_zones)
+    form = CheckoutForm(campus_zones=campus_zones, user=request.user)
     subtotal = sum(item.subtotal for item in cart_items)
 
     from django.conf import settings as django_settings
@@ -625,6 +656,9 @@ def paystack_initiate(request):
     zone_id       = data.get('zone_id')
     address       = data.get('address', '')
     runner_note   = data.get('runner_note', '')
+    phone         = data.get('phone', '').strip()
+    delivery_lat  = data.get('delivery_lat')
+    delivery_lng  = data.get('delivery_lng')
 
     cart_items    = CartItem.objects.filter(user=request.user).select_related('product__brand')
     if not cart_items.exists():
@@ -662,6 +696,9 @@ def paystack_initiate(request):
             payment_reference=payment_ref,
             master_order=master,
             hub_status='pending_vendor_shipment',
+            phone=phone,
+            delivery_lat=delivery_lat or None,
+            delivery_lng=delivery_lng or None,
         )
         order.calculate_totals()
         order.save()
@@ -752,7 +789,7 @@ def paystack_verify(request):
             CartItem.objects.filter(user=request.user).delete()
             request.session.pop('pending_order_ids', None)
             request.session.pop('pending_payment_ref', None)
-            messages.success(request, f'Payment received! Your order has been placed. (Note: awaiting final confirmation)')
+            messages.success(request, f'Payment received! Your order has been placed.')
         else:
             messages.error(request, f'Verify failed and no pending orders found. Ref: {reference} — contact support.')
         return redirect('customer_profile')
@@ -809,6 +846,12 @@ def _activate_orders(orders, reference):
     if master:
         master.status = 'awaiting_arrivals'
         master.save(update_fields=['status'])
+        # Send buyer receipt
+        send_order_receipt(master)
+
+    # Send seller new-order emails (after master is set)
+    for order in orders:
+        send_seller_new_order(order)
 
 
 @require_POST
@@ -891,6 +934,7 @@ def mark_order_shipped(request, order_id):
             title=f'🚚 {order.brand.name} has dispatched your item',
             message=f'Your item from {order.brand.name} is on its way to the OJA Hub for consolidated delivery.',
         )
+        send_order_shipped(order)
         messages.success(request, f'✅ Marked as dropped at hub. Hub team will scan it in.')
     return redirect('seller_profile')
 
@@ -933,9 +977,15 @@ def notifications(request):
 @login_required
 @require_POST
 def mark_notification_read(request, notif_id):
-    notif = get_object_or_404(Notification, id=notif_id, recipient=request.user)
-    notif.is_read = True
-    notif.save()
+    # Try personal notification first, then broadcast
+    from django.db.models import Q as _Q
+    notif = Notification.objects.filter(
+        _Q(recipient=request.user) | _Q(recipient=None),
+        id=notif_id
+    ).first()
+    if notif:
+        notif.is_read = True
+        notif.save()
     return redirect('notifications')
 
 
@@ -1006,6 +1056,7 @@ def cancel_order(request, order_id):
         message=f'Buyer cancelled Order #{order.pk}. Reason: {reason or "Not given"}',
         priority='high',
     )
+    send_order_cancelled(order)
     messages.success(request, f'Order #{order.pk} has been cancelled.')
     return redirect('customer_profile')
 
@@ -1052,6 +1103,7 @@ def dispute_order(request, order_id):
         message=f'A dispute has been raised on Order #{order.pk}. Admin will review.',
         priority='high',
     )
+    send_dispute_raised(order)
     messages.warning(request, f'Dispute raised for Order #{order.pk}. Our team will review within 24 hours.')
     return redirect('order_detail', order_id=order.pk)
 
@@ -1215,6 +1267,7 @@ def upgrade_verify(request):
     )
 
     request.session.pop('pro_upgrade_ref', None)
+    send_pro_upgrade_confirmation(brand)
     messages.success(request, '🎉 Upgrade successful! You are now on the Pro plan. Blue Tick verification has been submitted.')
     return redirect('seller_profile')
 
@@ -1265,6 +1318,7 @@ def _check_master_order_completion(master_order):
             title='🎁 Your order is being packed!',
             message='All your items have arrived at the OJA Hub and are being packed into one delivery bag.',
         )
+        send_all_at_hub(master_order)
     else:
         arrived = sub_orders.filter(hub_status='received_at_hub').count()
         total   = sub_orders.count()
@@ -1376,6 +1430,7 @@ def hub_dashboard(request):
                 message=f'Your OJA delivery bag ({master.hub_bin}) is out for delivery to {master.delivery_zone.name if master.delivery_zone else master.delivery_address}.',
                 priority='high',
             )
+            send_order_dispatched(master)
             messages.success(request, f'Master Order {master.hub_bin} dispatched for delivery.')
 
         elif action == 'assign_bin' and master_id:
@@ -1414,5 +1469,81 @@ def confirm_master_delivery(request, master_id):
     for sub in master.orders.filter(status__in=['shipped', 'paid', 'delivered']):
         sub.release_funds()
 
+    send_delivery_confirmed(master)
     messages.success(request, '✅ Order confirmed! Funds released to all sellers. Thank you!')
     return redirect('customer_profile')
+
+
+# ─────────────────────────────────────────────
+# CUSTOMER / SELLER SUPPORT CHAT WITH ADMIN
+# ─────────────────────────────────────────────
+
+@login_required
+def support_chat(request):
+    """Live chat / support ticket with admin team."""
+    from .models import OrderEnquiry as _OE
+    # Load existing support messages for this user (we re-use OrderEnquiry with order=None approach,
+    # but simpler: use a dedicated queryset on Notification as messages)
+    # Actually use a simple session-based approach with SupportMessage model
+    messages_qs = SupportMessage.objects.filter(user=request.user).order_by('created_at')
+
+    if request.method == 'POST':
+        msg_text = request.POST.get('message', '').strip()
+        if msg_text:
+            SupportMessage.objects.create(
+                user=request.user,
+                message=msg_text,
+                sender_type='user',
+            )
+            # Notify admin
+            Notification.objects.create(
+                recipient=None,
+                notification_type='system',
+                title=f'💬 Support Message from {request.user.first_name or request.user.username}',
+                message=f'{request.user.email}: {msg_text[:120]}',
+                priority='medium',
+            )
+        return redirect('support_chat')
+
+    default_faqs = [
+        ("How does escrow work?", "When you pay, your money is held safely by OJA. The seller only receives payment after you click 'Item Received'. If anything goes wrong, you can raise a dispute."),
+        ("How long does delivery take?", "Items are first collected at the OJA Hub from all your vendors, then packed into one bag and delivered to your hostel. This usually takes 1-3 hours after all items arrive at the hub."),
+        ("Can I cancel my order?", "Yes — you can cancel before the seller ships. Go to your order and click 'Cancel Order'. Stock is automatically restored."),
+        ("What is the OJA Hub?", "The OJA Hub is our central collection point on campus. All your vendors drop their items here, we pack everything into one OJA bag, and a single rider delivers to you."),
+        ("How do I become a verified seller?", "Upgrade to the Pro plan (₦5,000/month). After payment, your verification request is automatically submitted to our admin team who will review and grant the Blue Tick badge."),
+        ("My item hasn't arrived, what do I do?", "First check your order status. If it shows 'Out for Delivery' but hasn't arrived, use the chat above to contact us. You can also raise a dispute from the order detail page."),
+    ]
+    return render(request, 'marketplace/support_chat.html', {
+        'messages_qs': messages_qs,
+        'default_faqs': default_faqs,
+    })
+
+
+@login_required
+@require_POST
+def support_reply(request):
+    """Admin replies to a support message."""
+    if request.user.user_type != 'admin':
+        return redirect('home')
+    user_id  = request.POST.get('user_id')
+    msg_text = request.POST.get('message', '').strip()
+    if user_id and msg_text:
+        target_user = User.objects.filter(pk=user_id).first()
+        if target_user:
+            SupportMessage.objects.create(
+                user=target_user,
+                message=msg_text,
+                sender_type='admin',
+                admin_sender=request.user,
+            )
+            Notification.objects.create(
+                recipient=target_user,
+                notification_type='system',
+                title='💬 Reply from OJA Support',
+                message=msg_text[:120],
+            )
+    return redirect('admin_profile')
+
+
+def offline_page(request):
+    return render(request, 'marketplace/offline.html')

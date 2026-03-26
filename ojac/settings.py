@@ -9,7 +9,7 @@ SECRET_KEY = 'django-insecure-replace-this-in-production-with-a-real-secret-key'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'oja-lzug.onrender.com', '10.138.182.48']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -23,7 +23,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -79,17 +78,6 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-STORAGES = {
-    # This handles your CSS/JS (WhiteNoise)
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-    # This handles regular files/images (The missing piece!)
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-}
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -109,3 +97,16 @@ MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 # ── Paystack ──
 PAYSTACK_PUBLIC_KEY = 'pk_test_8a4e151ac1c636556397893c39fc1f268a06e420'
 PAYSTACK_SECRET_KEY = 'sk_test_4fd6d272efe52dab2a977dcd951275f05e68d64e'
+
+# ── Email (Transactional) ──
+# For SendGrid: set EMAIL_HOST=smtp.sendgrid.net, EMAIL_HOST_USER='apikey', EMAIL_HOST_PASSWORD=your_api_key
+# For Mailgun:  set EMAIL_HOST=smtp.mailgun.org, EMAIL_HOST_USER=postmaster@yourdomain, EMAIL_HOST_PASSWORD=your_key
+# For Gmail:    set EMAIL_HOST=smtp.gmail.com, EMAIL_HOST_USER=youremail, EMAIL_HOST_PASSWORD=app_password
+EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST          = 'smtp.gmail.com'       # Change to smtp.sendgrid.net or smtp.mailgun.org
+EMAIL_PORT          = 587
+EMAIL_USE_TLS       = True
+EMAIL_HOST_USER     = 'ojamarket2026@gmail.com' # ← Replace with your email
+EMAIL_HOST_PASSWORD = 'Yinka 12'    # ← Replace with your password / API key
+DEFAULT_FROM_EMAIL  = 'OJA Campus <noreply@oja.campus>'
+OJA_SITE_URL        = 'http://127.0.0.1:8000'  # ← Change to your live domain in production

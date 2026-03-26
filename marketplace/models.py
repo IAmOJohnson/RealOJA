@@ -24,6 +24,10 @@ class User(AbstractUser):
     account_number = models.CharField(max_length=20, blank=True)
     account_holder_name = models.CharField(max_length=100, blank=True)
     bank_code = models.CharField(max_length=10, blank=True)
+    # Location
+    latitude  = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    campus_area = models.CharField(max_length=200, blank=True, help_text='e.g. Moremi Hall, Faculty of Science')
 
     def __str__(self):
         return f"{self.username} ({self.user_type})"
@@ -346,6 +350,9 @@ class Order(models.Model):
     delivery_address = models.TextField(blank=True)
     delivery_fee = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
     runner_note = models.TextField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    delivery_lat  = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    delivery_lng  = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     commission_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     vendor_payout = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
@@ -521,3 +528,18 @@ class SellerVerificationRequest(models.Model):
 
     def __str__(self):
         return f"{self.brand.name} — {self.status}"
+
+class SupportMessage(models.Model):
+    SENDER_TYPES = [('user','User'),('admin','Admin')]
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, related_name='support_messages')
+    message      = models.TextField()
+    sender_type  = models.CharField(max_length=5, choices=SENDER_TYPES, default='user')
+    admin_sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='support_replies')
+    is_read      = models.BooleanField(default=False)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.sender_type} — {self.user.username}: {self.message[:40]}"

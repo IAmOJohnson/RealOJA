@@ -4,6 +4,16 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}OJA Marketplace{% endblock %}</title>
+  <!-- PWA -->
+  <meta name="application-name" content="OJA Campus">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OJA">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#D4AF37">
+  <meta name="description" content="OJA Campus Marketplace — Shop from multiple vendors, one consolidated delivery to your hostel.">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="{% load static %}{% static 'img/oja_logo.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   {% load static %}
@@ -152,6 +162,7 @@
       <a href="{% url 'brands' %}">Brands</a>
       <a href="{% url 'categories' %}">Categories</a>
       <a href="{% url 'deals' %}">Deals</a>
+      {% if user.is_authenticated %}<a href="{% url 'support_chat' %}">Support</a>{% endif %}
     </div>
 
     <div class="navbar-actions">
@@ -298,5 +309,92 @@ document.addEventListener('click', function(e){
 });
 </script>
 {% block extra_scripts %}{% endblock %}
+
+<script>
+// ── Service Worker Registration ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) {
+        console.log('[OJA] SW registered:', reg.scope);
+        // Check for updates every 60s
+        setInterval(function() { reg.update(); }, 60000);
+      })
+      .catch(function(err) {
+        console.warn('[OJA] SW registration failed:', err);
+      });
+  });
+}
+
+// ── PWA Install Prompt ──
+var deferredPrompt = null;
+var installBanner  = null;
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install banner after 3s on mobile
+  if (window.innerWidth < 900) {
+    setTimeout(showInstallBanner, 3000);
+  }
+});
+
+function showInstallBanner() {
+  if (installBanner || localStorage.getItem('oja-pwa-dismissed')) return;
+  installBanner = document.createElement('div');
+  installBanner.id = 'ojaPwaBanner';
+  installBanner.innerHTML = \`
+    <div style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f172a;border-top:2px solid #D4AF37;padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;box-shadow:0 -4px 20px rgba(0,0,0,.3)">
+      <img src="/static/img/oja_logo.png" style="width:40px;height:40px;border-radius:8px;flex-shrink:0" alt="OJA">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:#fff;font-size:.875rem">Add OJA to Home Screen</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.5)">Install for faster access & offline browsing</div>
+      </div>
+      <button onclick="installPwa()" style="background:#D4AF37;color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;font-weight:700;font-size:.8rem;cursor:pointer;white-space:nowrap;font-family:inherit">Install</button>
+      <button onclick="dismissPwaBanner()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1.25rem;padding:.25rem;flex-shrink:0">✕</button>
+    </div>
+  \`;
+  document.body.appendChild(installBanner);
+}
+
+function installPwa() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function(result) {
+    if (result.outcome === 'accepted') {
+      dismissPwaBanner();
+    }
+    deferredPrompt = null;
+  });
+}
+
+function dismissPwaBanner() {
+  if (installBanner) { installBanner.remove(); installBanner = null; }
+  localStorage.setItem('oja-pwa-dismissed', '1');
+}
+
+window.addEventListener('appinstalled', function() {
+  dismissPwaBanner();
+  console.log('[OJA] PWA installed');
+});
+
+// ── Offline / Online indicator ──
+function updateOnlineStatus() {
+  var existing = document.getElementById('ojaOfflineBanner');
+  if (!navigator.onLine) {
+    if (!existing) {
+      var banner = document.createElement('div');
+      banner.id = 'ojaOfflineBanner';
+      banner.innerHTML = '<div style="position:fixed;top:68px;left:0;right:0;z-index:950;background:#ef4444;color:#fff;text-align:center;padding:.5rem;font-size:.8rem;font-weight:700">📡 You're offline — some features may not work</div>';
+      document.body.appendChild(banner);
+    }
+  } else if (existing) {
+    existing.remove();
+  }
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+</script>
 </body>
 </html>

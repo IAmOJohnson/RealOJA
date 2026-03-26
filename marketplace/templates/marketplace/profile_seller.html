@@ -10,7 +10,50 @@
 @media(max-width:900px){ .sd-grid { grid-template-columns:1fr; } }
 
 /* ─── Sidebar ─── */
-.sd-sidebar { position:sticky; top:80px; }
+.sd-sidebar { position:sticky; top:68px; }
+
+/* ─── MOBILE: Bottom tab bar ─── */
+.mob-bottom-nav {
+  display:none; position:fixed; bottom:0; left:0; right:0; z-index:200;
+  background:#fff; border-top:1px solid var(--border);
+  box-shadow:0 -4px 16px rgba(0,0,0,.08);
+  padding:0 0 env(safe-area-inset-bottom);
+}
+.mob-tabs { display:flex; }
+.mob-tab {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:.5rem .25rem; border:none; background:none; cursor:pointer; font-family:inherit;
+  color:var(--text-muted); position:relative; transition:color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.mob-tab .mt-icon { font-size:1.3rem; line-height:1; margin-bottom:.15rem; }
+.mob-tab .mt-label { font-size:.58rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.mob-tab.active { color:var(--gold); }
+.mob-tab.active .mt-icon { transform:scale(1.1); }
+.mob-tab-badge { position:absolute; top:.3rem; right:calc(50% - 20px); background:#ef4444; color:#fff; font-size:.52rem; font-weight:800; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1.5px solid #fff; }
+.mob-more-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:.5rem .25rem; border:none; background:none; cursor:pointer; font-family:inherit; color:var(--text-muted); }
+
+/* Mobile adjustments */
+@media(max-width:900px){
+  .sd-wrap { padding-bottom:80px !important; }
+  .sd-grid { grid-template-columns:1fr !important; gap:1rem; }
+  .sd-sidebar { display:none !important; }
+  .mob-bottom-nav { display:block; }
+  .sd-panel-title { font-size:1.15rem; }
+  .sd-stats { grid-template-columns:repeat(2,1fr) !important; }
+  .sd-stat-val { font-size:1.4rem !important; }
+  .pd-grid { grid-template-columns:repeat(2,1fr) !important; }
+  .wlt-card { padding:1.1rem .9rem; }
+  .wlt-amount { font-size:1.4rem !important; }
+  .up-plans { grid-template-columns:1fr !important; }
+  .feat-showcase { grid-template-columns:1fr !important; }
+  .promo-cards { grid-template-columns:1fr !important; }
+  /* Compact product cards on mobile */
+  .pd-card-img { height:96px !important; }
+  .pd-body { padding:.75rem !important; }
+  /* Compact wallet cards */
+  .wlt-label { font-size:.7rem !important; }
+}
 .sd-profile-card {
   background:linear-gradient(135deg,#f0fdf4,#dcfce7);
   border:1px solid #86efac; border-radius:16px; padding:1.5rem; margin-bottom:1rem;
@@ -764,17 +807,47 @@
   </div>
 </div>
 
+<!-- ── Mobile Bottom Nav ── -->
+<nav class="mob-bottom-nav">
+  <div class="mob-tabs">
+    <button class="mob-tab active" onclick="mobSwitch('products',this)">
+      <span class="mt-icon">📦</span><span class="mt-label">Products</span>
+    </button>
+    <button class="mob-tab" onclick="mobSwitch('orders',this)">
+      <span class="mt-icon">🛒</span><span class="mt-label">Orders</span>
+      {% if orders %}<span class="mob-tab-badge">{{ orders|length }}</span>{% endif %}
+    </button>
+    <button class="mob-tab" onclick="mobSwitch('add-product',this)">
+      <div style="width:42px;height:42px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;font-weight:300;margin:-10px auto .1rem;box-shadow:0 4px 12px rgba(212,175,55,.4)">+</div>
+      <span class="mt-label">Add</span>
+    </button>
+    <button class="mob-tab" onclick="mobSwitch('wallet',this)">
+      <span class="mt-icon">💰</span><span class="mt-label">Wallet</span>
+    </button>
+    <button class="mob-tab" onclick="mobSwitch('upgrade',this)">
+      <span class="mt-icon">⭐</span><span class="mt-label">Upgrade</span>
+    </button>
+  </div>
+</nav>
+
 <script>
 // ── Panel switching ──
 function showPanel(name) {
   document.querySelectorAll('.sd-nav-item').forEach(function(b){ b.classList.remove('active'); });
-  document.querySelectorAll('.sd-panel').forEach(function(p){ p.classList.remove('active'); });
   var btn = document.querySelector('[data-panel="' + name + '"]');
   if (btn) btn.classList.add('active');
+  document.querySelectorAll('.sd-panel').forEach(function(p){ p.classList.remove('active'); });
   var panel = document.getElementById('panel-' + name);
   if (panel) panel.classList.add('active');
   window.scrollTo({top:0, behavior:'smooth'});
 }
+
+function mobSwitch(name, el) {
+  document.querySelectorAll('.mob-tab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  showPanel(name);
+}
+
 document.querySelectorAll('.sd-nav-item[data-panel]').forEach(function(btn) {
   btn.addEventListener('click', function() { showPanel(this.dataset.panel); });
 });

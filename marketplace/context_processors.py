@@ -14,7 +14,7 @@ def cart_context(request):
 def notification_context(request):
     if request.user.is_authenticated:
         unread_count = Notification.objects.filter(
-            Q(recipient=request.user) | Q(recipient=None),
+            recipient=request.user,  # only personal notifications, not broadcasts
             is_read=False
         ).count()
         return {'unread_notifications': unread_count}

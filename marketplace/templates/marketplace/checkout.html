@@ -1,227 +1,365 @@
 {% extends 'marketplace/base.html' %}
-{% block title %}Checkout — OJA Campus{% endblock %}
+{% block title %}Checkout — OJA{% endblock %}
 
 {% block extra_head %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-  .ps-overlay {
-    display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
-    z-index:999; align-items:center; justify-content:center;
-  }
-  .ps-overlay.active { display:flex; }
-  .ps-spinner {
-    background:#fff; border-radius:16px; padding:2.5rem 3rem;
-    text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.25);
-  }
-  .ps-spinner .spin {
-    width:48px; height:48px; border:4px solid var(--gold-light);
-    border-top-color:var(--gold); border-radius:50%;
-    animation:spin .8s linear infinite; margin:0 auto 1rem;
-  }
-  @keyframes spin { to { transform:rotate(360deg); } }
-  .ps-step { display:flex; align-items:center; gap:.75rem; padding:.875rem 1.25rem; background:var(--gray-light); border-radius:8px; margin-bottom:.6rem; font-size:.875rem; font-weight:600; color:var(--text-muted); }
-  .ps-step.active { background:rgba(212,175,55,.12); color:var(--gray-dark); border:1.5px solid rgba(212,175,55,.3); }
-  .ps-step .step-num { width:24px; height:24px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0; }
-  .ps-step.active .step-num { background:var(--gold); color:#fff; }
+.co-wrap { max-width:980px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+.co-section-title { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--gold); margin-bottom:.875rem; display:flex; align-items:center; gap:.5rem; }
+.co-grid { display:grid; grid-template-columns:1fr 340px; gap:1.5rem; align-items:start; }
+@media(max-width:720px){ .co-grid { grid-template-columns:1fr; } }
+.co-card { background:#fff; border:1.5px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:1.25rem; }
+.co-card-head { padding:.875rem 1.25rem; border-bottom:1px solid var(--border); font-weight:700; font-size:.9rem; display:flex; align-items:center; gap:.5rem; background:var(--gray-light); }
+.co-card-body { padding:1.25rem; }
+
+/* Required indicator */
+.req { color:#ef4444; font-size:.75rem; margin-left:.2rem; }
+.field-wrap { margin-bottom:1rem; }
+.field-wrap label { display:block; font-size:.825rem; font-weight:700; margin-bottom:.4rem; color:var(--gray-dark); }
+.field-err { font-size:.75rem; color:#ef4444; margin-top:.25rem; display:none; }
+.field-wrap.error .input-field { border-color:#ef4444; }
+.field-wrap.error .field-err { display:block; }
+
+/* Map */
+.map-container { border:1.5px solid var(--border); border-radius:10px; overflow:hidden; margin-top:.75rem; }
+.map-label { font-size:.75rem; color:var(--text-muted); margin-top:.4rem; display:flex; align-items:center; gap:.35rem; }
+#deliveryMap { height:260px; }
+.map-coords { font-size:.72rem; color:var(--gold); font-weight:600; margin-top:.3rem; }
+
+/* Zone cards */
+.zone-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; }
+@media(max-width:500px){ .zone-grid { grid-template-columns:1fr; } }
+.zone-card { border:1.5px solid var(--border); border-radius:10px; padding:.875rem 1rem; cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.zone-card:hover { border-color:var(--gold); background:rgba(212,175,55,.04); }
+.zone-card.selected { border-color:var(--gold); background:rgba(212,175,55,.07); box-shadow:0 0 0 2px rgba(212,175,55,.2); }
+.zone-name { font-weight:700; font-size:.875rem; }
+.zone-rate { font-size:.8rem; font-weight:700; color:var(--gold); }
+.zone-type { font-size:.72rem; color:var(--text-muted); }
+
+/* Cart items */
+.ci-row { display:flex; align-items:center; gap:.875rem; padding:.65rem 0; border-bottom:1px solid var(--border); }
+.ci-row:last-child { border-bottom:none; }
+.ci-img { width:44px; height:44px; border-radius:8px; background:var(--gray-light); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; overflow:hidden; }
+.ci-img img { width:100%;height:100%;object-fit:cover; }
+
+/* Order summary */
+.os-row { display:flex; justify-content:space-between; font-size:.875rem; padding:.3rem 0; }
+.os-total { display:flex; justify-content:space-between; font-weight:800; font-size:1.1rem; padding:.75rem 0 0; border-top:1.5px solid var(--border); margin-top:.5rem; }
+
+/* Pay button */
+.pay-btn { width:100%; background:var(--gold); color:#fff; border:none; padding:1rem; border-radius:12px; font-weight:800; font-size:1rem; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:.6rem; transition:background .2s; letter-spacing:.01em; }
+.pay-btn:hover { background:var(--gold-dark); }
+.pay-btn:disabled { opacity:.55; cursor:not-allowed; }
+
+/* Loading overlay */
+.ps-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; align-items:center; justify-content:center; }
+.ps-overlay.show { display:flex; }
+.ps-spinner { background:#fff; border-radius:16px; padding:2.5rem 3rem; text-align:center; }
+.ps-spin { width:48px; height:48px; border:4px solid var(--gold-light); border-top-color:var(--gold); border-radius:50%; animation:spin .75s linear infinite; margin:0 auto 1rem; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Escrow badge */
+.escrow-badge { background:linear-gradient(135deg,#fff8e1,#fffde7); border:1.5px solid var(--gold); border-radius:12px; padding:1rem 1.25rem; display:flex; gap:.875rem; align-items:flex-start; margin-bottom:1.25rem; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="section">
-  <div class="container" style="max-width:960px">
-    <h1 class="section-title mb-4">Checkout</h1>
+<div style="padding-top:74px">
+<div class="co-wrap">
 
-    <div class="cart-layout">
+  <div class="co-section-title">🔒 Secure Checkout</div>
 
-      <!-- LEFT: delivery form -->
-      <div>
-        <!-- Escrow banner -->
-        <div style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1.5px solid var(--gold);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;display:flex;gap:1rem;align-items:flex-start">
-          <span style="font-size:1.6rem;flex-shrink:0">🔒</span>
-          <div>
-            <div style="font-weight:700;margin-bottom:.25rem">Your payment is protected by Campus Escrow</div>
-            <div style="font-size:.875rem;color:var(--text-muted)">Money held safely until you confirm receipt. Vendor only gets paid after you click "Item Received."</div>
+  <!-- Escrow banner -->
+  <div class="escrow-badge">
+    <span style="font-size:1.5rem;flex-shrink:0">🔒</span>
+    <div>
+      <div style="font-weight:700;margin-bottom:.2rem">Campus Escrow Protection</div>
+      <div style="font-size:.825rem;color:var(--text-muted)">Your money is held safely until you confirm receipt. Sellers only get paid after you click "Item Received."</div>
+    </div>
+  </div>
+
+  <div class="co-grid">
+
+    <!-- LEFT: delivery form -->
+    <div>
+
+      <!-- Contact -->
+      <div class="co-card">
+        <div class="co-card-head">📱 Contact Details</div>
+        <div class="co-card-body">
+          <div class="field-wrap" id="field-phone">
+            <label>Phone Number <span class="req">*</span></label>
+            {{ form.phone }}
+            <div class="field-err">Phone number is required for delivery coordination</div>
           </div>
         </div>
+      </div>
 
-        <!-- How it works steps -->
-        <div style="margin-bottom:1.5rem">
-          <div style="font-weight:700;font-size:.875rem;margin-bottom:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">How it works</div>
-          <div class="ps-step active"><div class="step-num">1</div> Fill delivery details below</div>
-          <div class="ps-step active"><div class="step-num">2</div> Pay securely via Paystack popup</div>
-          <div class="ps-step"><div class="step-num">3</div> Seller packs &amp; ships your order</div>
-          <div class="ps-step"><div class="step-num">4</div> You confirm receipt → funds released to seller</div>
-        </div>
-
-        <!-- Delivery form -->
-        <div class="card card-body" style="margin-bottom:1.5rem">
-          <h3 style="font-weight:700;margin-bottom:1.25rem">📍 Campus Delivery</h3>
-          <div class="form-group">
-            <label>Delivery Zone</label>
-            {{ form.delivery_zone }}
-            <div id="zoneRateHint" style="margin-top:.4rem;font-size:.8rem;color:var(--text-muted)"></div>
+      <!-- Zone picker -->
+      <div class="co-card">
+        <div class="co-card-head">🛵 Delivery Zone <span class="req" style="margin-left:.2rem">*</span></div>
+        <div class="co-card-body">
+          <div class="zone-grid" id="zoneGrid">
+            {% for zone in campus_zones %}
+            <div class="zone-card" data-id="{{ zone.id }}" data-rate="{{ zone.flat_rate }}" data-name="{{ zone.name }}" onclick="selectZone(this)">
+              <div>
+                <div class="zone-name">{{ zone.name }}</div>
+                <div class="zone-type">{{ zone.get_zone_type_display }}</div>
+              </div>
+              <div class="zone-rate">₦{{ zone.flat_rate|floatformat:0 }}</div>
+            </div>
+            {% empty %}
+            <div style="grid-column:1/-1;color:var(--text-muted);font-size:.875rem">No delivery zones configured yet.</div>
+            {% endfor %}
           </div>
-          <div class="form-group">
-            <label>Room / Block / Hostel Address</label>
+          {{ form.delivery_zone }}
+          <div id="zone-err" style="font-size:.75rem;color:#ef4444;margin-top:.5rem;display:none">Please select a delivery zone</div>
+        </div>
+      </div>
+
+      <!-- Delivery address + map -->
+      <div class="co-card">
+        <div class="co-card-head">📍 Delivery Location <span class="req" style="margin-left:.2rem">*</span></div>
+        <div class="co-card-body">
+          <div class="field-wrap" id="field-address">
+            <label>Room / Block / Hostel Name <span class="req">*</span></label>
             {{ form.delivery_address }}
+            <div class="field-err">Please enter your delivery address</div>
           </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label>Note for Runner (optional)</label>
+
+          <!-- Map picker -->
+          <div>
+            <label style="font-size:.825rem;font-weight:700;display:block;margin-bottom:.4rem">
+              📌 Pin Your Location on Map
+              <span style="font-weight:400;color:var(--text-muted);font-size:.75rem">(optional but recommended)</span>
+            </label>
+            <div class="map-container">
+              <div id="deliveryMap"></div>
+            </div>
+            <div class="map-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              Click anywhere on the map to drop your pin
+            </div>
+            <div class="map-coords" id="mapCoords" style="display:none">📍 Pin set!</div>
+          </div>
+          {{ form.delivery_lat }}
+          {{ form.delivery_lng }}
+
+          <div class="field-wrap" style="margin-top:1rem;margin-bottom:0">
+            <label>Note for Runner <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
             {{ form.runner_note }}
           </div>
         </div>
+      </div>
 
-        <!-- Items -->
-        <div class="card card-body">
-          <h3 style="font-weight:700;margin-bottom:1rem">Your Items</h3>
+      <!-- Items -->
+      <div class="co-card">
+        <div class="co-card-head">🛍 Your Items</div>
+        <div class="co-card-body">
           {% for item in cart_items %}
-          <div class="cart-item">
-            <div class="cart-item-img">
-              {% if item.product.image %}<img src="{{ item.product.image.url }}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">{% else %}📦{% endif %}
+          <div class="ci-row">
+            <div class="ci-img">
+              {% if item.product.image %}<img src="{{ item.product.image.url }}">{% else %}📦{% endif %}
             </div>
-            <div class="cart-item-details">
-              <div style="font-weight:600">{{ item.product.name }}</div>
-              <div class="text-muted" style="font-size:.85rem">{{ item.product.brand.name }}</div>
-              <div style="color:var(--gold);font-weight:700">₦{{ item.product.price|floatformat:0 }} × {{ item.quantity }}</div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:.875rem">{{ item.product.name }}</div>
+              <div style="font-size:.78rem;color:var(--text-muted)">{{ item.product.brand.name }}</div>
             </div>
-            <div style="font-weight:700;white-space:nowrap">₦{{ item.subtotal|floatformat:0 }}</div>
+            <div style="text-align:right">
+              <div style="font-weight:700;font-size:.875rem">₦{{ item.subtotal|floatformat:0 }}</div>
+              <div style="font-size:.72rem;color:var(--text-muted)">×{{ item.quantity }}</div>
+            </div>
           </div>
           {% endfor %}
         </div>
       </div>
 
-      <!-- RIGHT: summary + pay button -->
-      <div>
-        <div class="order-summary">
-          <h3 style="font-weight:700;font-size:1.1rem;margin-bottom:1.25rem">Order Summary</h3>
-          <div class="order-row"><span>Subtotal</span><span>₦{{ subtotal|floatformat:0 }}</span></div>
-          <div class="order-row"><span>Delivery</span><span id="deliveryFeeDisplay">Select zone</span></div>
-          <div class="order-row order-total">
-            <span>Total</span>
-            <span class="text-gold" id="grandTotal">₦{{ subtotal|floatformat:0 }}</span>
-          </div>
+    </div>
 
-          <!-- Paystack security note -->
-          <div style="margin:1.25rem 0;padding:1rem;background:rgba(212,175,55,.08);border-radius:var(--radius);border:1px solid rgba(212,175,55,.2)">
-            <div style="display:flex;gap:.5rem;align-items:center;font-size:.85rem;font-weight:700;margin-bottom:.4rem">
-              🔒 Escrow + Paystack Protected
-            </div>
-            <div style="font-size:.8rem;color:var(--text-muted)">Payment processed securely by Paystack. Funds held in escrow until delivery confirmed.</div>
-          </div>
+    <!-- RIGHT: summary + pay -->
+    <div>
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:1.25rem;position:sticky;top:88px">
+        <div style="font-weight:800;font-size:1rem;margin-bottom:1rem">Order Summary</div>
+        <div class="os-row"><span>Subtotal</span><span>₦{{ subtotal|floatformat:0 }}</span></div>
+        <div class="os-row"><span>Delivery</span><span id="deliveryFeeDisplay" style="color:var(--gold);font-weight:600">Select zone →</span></div>
+        <div class="os-total"><span>Total</span><span style="color:var(--gold)" id="grandTotal">₦{{ subtotal|floatformat:0 }}</span></div>
 
-          <!-- Paystack logo -->
-          <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:1rem;color:var(--text-muted);font-size:.8rem">
-            <svg width="18" height="18" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#00C3F7"/><path d="M8 15h24v4H8zm0 6h18v4H8z" fill="white"/></svg>
-            Powered by Paystack
-          </div>
-
-          <!-- PAY BUTTON -->
-          <button id="payBtn" onclick="initiatePayment()" class="btn-gold w-full" style="justify-content:center;font-size:1rem;padding:.9rem;gap:.6rem">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-            Pay with Paystack
-          </button>
-          <a href="{% url 'cart' %}" class="btn-outline w-full" style="display:flex;justify-content:center;margin-top:.75rem">← Back to Cart</a>
+        <div style="background:rgba(212,175,55,.07);border:1px solid rgba(212,175,55,.2);border-radius:8px;padding:.875rem;margin:1rem 0;font-size:.78rem">
+          <div style="font-weight:700;margin-bottom:.25rem">🔒 Escrow + Paystack</div>
+          <div style="color:var(--text-muted)">Payment held until you confirm delivery</div>
         </div>
+
+        <div style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin-bottom:.875rem;color:var(--text-muted);font-size:.75rem">
+          <svg width="14" height="14" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="6" fill="#00C3F7"/><path d="M8 15h24v4H8zm0 6h18v4H8z" fill="white"/></svg>
+          Secured by Paystack
+        </div>
+
+        <button id="payBtn" onclick="initiatePayment()" class="pay-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Pay with Paystack
+        </button>
+        <a href="{% url 'cart' %}" class="btn-outline w-full" style="display:flex;justify-content:center;margin-top:.75rem;font-size:.875rem">← Back to Cart</a>
       </div>
     </div>
+
   </div>
 </div>
+</div>
 
-<!-- Loading overlay while Paystack initialises -->
+<!-- Loading overlay -->
 <div class="ps-overlay" id="psOverlay">
   <div class="ps-spinner">
-    <div class="spin"></div>
-    <div style="font-weight:700;color:var(--gray-dark)">Connecting to Paystack…</div>
-    <div style="font-size:.85rem;color:var(--text-muted);margin-top:.25rem">Please wait</div>
+    <div class="ps-spin"></div>
+    <div style="font-weight:700">Connecting to Paystack…</div>
+    <div style="font-size:.85rem;color:var(--text-muted);margin-top:.2rem">Please wait</div>
   </div>
 </div>
 
-<!-- Paystack inline script -->
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
 var PAYSTACK_PUBLIC_KEY = '{{ PAYSTACK_PUBLIC_KEY }}';
 var subtotalNaira = {{ subtotal }};
-var zoneRates = { {% for z in campus_zones %}"{{ z.id }}": {{ z.flat_rate }},{% endfor %} };
+var selectedZone  = null;
+var deliveryFee   = 0;
+var mapPin        = null;
+var mapObj        = null;
 
-var zoneSelect   = document.getElementById('id_delivery_zone');
-var hintEl       = document.getElementById('zoneRateHint');
-var feeDisplay   = document.getElementById('deliveryFeeDisplay');
-var totalDisplay = document.getElementById('grandTotal');
+// ── Zone selection ──
+function selectZone(card) {
+  document.querySelectorAll('.zone-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  selectedZone = card.dataset.id;
+  deliveryFee  = parseFloat(card.dataset.rate) || 0;
+  document.getElementById('id_delivery_zone').value = selectedZone;
+  document.getElementById('deliveryFeeDisplay').textContent = '₦' + deliveryFee.toLocaleString();
+  document.getElementById('grandTotal').textContent = '₦' + (subtotalNaira + deliveryFee).toLocaleString();
+  document.getElementById('zone-err').style.display = 'none';
+  // Center map on zone if we have coords
+  updateMapForZone(card.dataset.name);
+}
 
-zoneSelect && zoneSelect.addEventListener('change', function(){
-  var fee = zoneRates[this.value] || 0;
-  hintEl.textContent     = fee ? '🛵 Flat delivery fee: ₦' + fee.toLocaleString() : '';
-  feeDisplay.textContent = fee ? '₦' + fee.toLocaleString() : 'Free';
-  totalDisplay.textContent = '₦' + (subtotalNaira + fee).toLocaleString();
+// ── Leaflet map ──
+window.addEventListener('load', function(){
+  // Default to Nigeria center, try to get user's location
+  var defaultLat = 9.0765, defaultLng = 7.3986; // Abuja
+  mapObj = L.map('deliveryMap').setView([defaultLat, defaultLng], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap', maxZoom:19
+  }).addTo(mapObj);
+
+  // Custom gold marker icon
+  var goldIcon = L.divIcon({
+    html: '<div style="width:32px;height:32px;background:#D4AF37;border:3px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.3);font-size:14px">📍</div>',
+    iconSize:[32,32], iconAnchor:[16,32], className:''
+  });
+
+  mapObj.on('click', function(e){
+    var lat = e.latlng.lat.toFixed(7);
+    var lng = e.latlng.lng.toFixed(7);
+    if(mapPin) mapObj.removeLayer(mapPin);
+    mapPin = L.marker([lat, lng], {icon:goldIcon, draggable:true}).addTo(mapObj);
+    mapPin.on('dragend', function(ev){
+      var pos = ev.target.getLatLng();
+      setCoords(pos.lat.toFixed(7), pos.lng.toFixed(7));
+    });
+    setCoords(lat, lng);
+  });
+
+  // Try geolocation
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      mapObj.setView([lat, lng], 17);
+      L.circle([lat, lng], {radius:80, color:'#D4AF37', fillOpacity:.1, weight:1}).addTo(mapObj);
+    }, null, {timeout:5000});
+  }
 });
 
-function getCookie(name) {
-  var value = '; ' + document.cookie;
-  var parts = value.split('; ' + name + '=');
-  if (parts.length === 2) return parts.pop().split(';').shift();
+function setCoords(lat, lng){
+  document.getElementById('id_delivery_lat').value = lat;
+  document.getElementById('id_delivery_lng').value  = lng;
+  var el = document.getElementById('mapCoords');
+  el.style.display = 'block';
+  el.textContent   = '📍 Pin set at ' + parseFloat(lat).toFixed(5) + ', ' + parseFloat(lng).toFixed(5);
 }
 
-function initiatePayment() {
-  var zoneId    = zoneSelect ? zoneSelect.value : '';
-  var address   = document.getElementById('id_delivery_address') ? document.getElementById('id_delivery_address').value : '';
-  var runnerNote = document.getElementById('id_runner_note') ? document.getElementById('id_runner_note').value : '';
+function updateMapForZone(zoneName){
+  // Could look up zone coords here — for now just show a message
+}
 
-  // Show spinner
-  document.getElementById('psOverlay').classList.add('active');
-  document.getElementById('payBtn').disabled = true;
+// ── Validation ──
+function validate(){
+  var ok = true;
+  var phone   = document.getElementById('id_phone');
+  var address = document.getElementById('id_delivery_address');
 
-  // Step 1 — create pending orders, get reference + amount
+  document.querySelectorAll('.field-wrap').forEach(f => f.classList.remove('error'));
+  document.getElementById('zone-err').style.display = 'none';
+
+  if(!phone.value.trim()){
+    document.getElementById('field-phone').classList.add('error');
+    phone.focus(); ok = false;
+  }
+  if(!selectedZone){
+    document.getElementById('zone-err').style.display = 'block';
+    if(ok) document.getElementById('zoneGrid').scrollIntoView({behavior:'smooth'}); ok = false;
+  }
+  if(!address.value.trim()){
+    document.getElementById('field-address').classList.add('error');
+    if(ok) address.focus(); ok = false;
+  }
+  return ok;
+}
+
+// ── Paystack ──
+function getCsrf(){ var v='; '+document.cookie,p=v.split('; csrftoken=');return p.length===2?p.pop().split(';').shift():''; }
+
+function initiatePayment(){
+  if(!validate()) return;
+  var btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  document.getElementById('psOverlay').classList.add('show');
+
+  var latEl = document.getElementById('id_delivery_lat');
+  var lngEl = document.getElementById('id_delivery_lng');
+
   fetch('{% url "paystack_initiate" %}', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCookie('csrftoken'),
-    },
-    body: JSON.stringify({ zone_id: zoneId, address: address, runner_note: runnerNote }),
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+    body: JSON.stringify({
+      zone_id:      selectedZone,
+      address:      document.getElementById('id_delivery_address').value,
+      runner_note:  document.getElementById('id_runner_note') ? document.getElementById('id_runner_note').value : '',
+      phone:        document.getElementById('id_phone').value,
+      delivery_lat: latEl ? latEl.value : null,
+      delivery_lng: lngEl ? lngEl.value : null,
+    }),
   })
-  .then(function(r){ return r.json(); })
-  .then(function(data) {
-    document.getElementById('psOverlay').classList.remove('active');
-
-    if(data.error) {
-      alert('Error: ' + data.error);
-      document.getElementById('payBtn').disabled = false;
-      return;
-    }
-
-    // Step 2 — launch Paystack inline popup
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('psOverlay').classList.remove('show');
+    if(data.error){ alert('Error: '+data.error); btn.disabled=false; return; }
     var handler = PaystackPop.setup({
-      key:       PAYSTACK_PUBLIC_KEY,
-      email:     data.email,
-      amount:    data.amount,        // in kobo
-      ref:       data.reference,
-      currency:  'NGN',
-      label:     'OJA Campus Marketplace',
-      metadata: {
-        custom_fields: [
-          { display_name: 'Platform', variable_name: 'platform', value: 'OJA Campus' }
-        ]
-      },
-      onClose: function() {
-        // User closed without paying
-        document.getElementById('payBtn').disabled = false;
-        // Clean up pending orders
-        fetch('/paystack/verify/?reference=' + data.reference + '&cancelled=1');
-      },
-      callback: function(response) {
-        // Step 3 — payment done, verify server-side
-        document.getElementById('psOverlay').classList.add('active');
-        window.location.href = '{% url "paystack_verify" %}?reference=' + response.reference;
+      key:data.email?PAYSTACK_PUBLIC_KEY:PAYSTACK_PUBLIC_KEY,
+      email:data.email, amount:data.amount, ref:data.reference, currency:'NGN',
+      label:'OJA Campus Marketplace',
+      onClose: function(){ btn.disabled=false; },
+      callback: function(resp){
+        document.getElementById('psOverlay').classList.add('show');
+        window.location.href='{% url "paystack_verify" %}?reference='+resp.reference;
       }
     });
-
     handler.openIframe();
   })
-  .catch(function(err) {
-    document.getElementById('psOverlay').classList.remove('active');
-    document.getElementById('payBtn').disabled = false;
-    alert('Something went wrong. Please try again.');
-    console.error(err);
-  });
+  .catch(()=>{ document.getElementById('psOverlay').classList.remove('show'); btn.disabled=false; alert('Error. Please try again.'); });
 }
+
+// Hide the default select (we use custom cards) but keep it in DOM for form
+var zoneSelect = document.getElementById('id_delivery_zone');
+if(zoneSelect) zoneSelect.style.display = 'none';
 </script>
 {% endblock %}

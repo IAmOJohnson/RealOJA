@@ -3,276 +3,423 @@
 
 {% block extra_head %}
 <style>
-  .od-wrap   { max-width:860px; margin:0 auto; padding:2rem 1.5rem 4rem; }
-  .od-header { background:linear-gradient(135deg,#1e293b,#334155); border-radius:12px; padding:1.75rem 2rem; color:#fff; margin-bottom:1.5rem; }
-  .od-order-num { font-size:1.5rem; font-weight:800; }
-  .od-sub { color:rgba(255,255,255,.6); font-size:.875rem; margin-top:.25rem; }
+.od-page { max-width:980px; margin:0 auto; padding:2rem 1.5rem 4rem; }
 
-  /* Status badge */
-  .od-status { display:inline-flex; align-items:center; gap:.4rem; font-size:.85rem; font-weight:700; padding:.35rem .9rem; border-radius:20px; }
-  .od-status-pending   { background:#fef9c3; color:#92400e; }
-  .od-status-paid      { background:#dbeafe; color:#1d4ed8; }
-  .od-status-shipped   { background:#e0e7ff; color:#4338ca; }
-  .od-status-delivered { background:#dcfce7; color:#15803d; }
-  .od-status-confirmed { background:#dcfce7; color:#15803d; }
-  .od-status-disputed  { background:#fee2e2; color:#b91c1c; }
-  .od-status-cancelled { background:#f3f4f6; color:#6b7280; }
-  .od-status-refunded  { background:#fce7f3; color:#9d174d; }
+/* Header */
+.od-header { background:linear-gradient(135deg,#0f172a,#1e293b); border-radius:16px; padding:1.75rem 2rem; color:#fff; margin-bottom:1.5rem; }
+.od-title { font-size:1.6rem; font-weight:900; letter-spacing:-.02em; }
+.od-meta  { color:rgba(255,255,255,.55); font-size:.875rem; margin-top:.3rem; }
+.od-status-pill { display:inline-flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:700; padding:.35rem .9rem; border-radius:20px; }
+.sp-pending  { background:#fef9c3; color:#92400e; }
+.sp-paid     { background:#dbeafe; color:#1d4ed8; }
+.sp-shipped  { background:#e0e7ff; color:#4338ca; }
+.sp-confirmed { background:#dcfce7; color:#15803d; }
+.sp-disputed  { background:#fee2e2; color:#b91c1c; }
+.sp-cancelled { background:#f3f4f6; color:#6b7280; }
 
-  /* Timeline */
-  .timeline { position:relative; padding-left:2rem; }
-  .timeline::before { content:''; position:absolute; left:.6rem; top:0; bottom:0; width:2px; background:var(--border); }
-  .tl-item { position:relative; margin-bottom:1.5rem; }
-  .tl-dot  { position:absolute; left:-2rem; top:.2rem; width:14px; height:14px; border-radius:50%; background:var(--border); border:2px solid #fff; box-shadow:0 0 0 2px var(--border); }
-  .tl-dot.done  { background:var(--gold); box-shadow:0 0 0 2px rgba(212,175,55,.3); }
-  .tl-dot.active { background:var(--gold); box-shadow:0 0 0 4px rgba(212,175,55,.2); }
-  .tl-dot.error { background:#ef4444; box-shadow:0 0 0 4px rgba(239,68,68,.2); }
-  .tl-label { font-weight:700; font-size:.9rem; color:var(--gray-dark); }
-  .tl-sub   { font-size:.8rem; color:var(--text-muted); margin-top:.15rem; }
+/* Role badge */
+.role-badge { display:inline-flex; align-items:center; gap:.35rem; font-size:.72rem; font-weight:700; padding:.25rem .75rem; border-radius:20px; }
+.role-seller   { background:rgba(212,175,55,.2); color:var(--gold); border:1px solid rgba(212,175,55,.3); }
+.role-customer { background:rgba(59,130,246,.15); color:#1d4ed8; border:1px solid rgba(59,130,246,.2); }
 
-  /* Enquiry chat */
-  .eq-bubble { padding:.875rem 1.1rem; border-radius:12px; max-width:80%; margin-bottom:.75rem; }
-  .eq-buyer  { background:var(--gold-light); border:1px solid rgba(212,175,55,.25); margin-left:auto; border-radius:12px 12px 2px 12px; }
-  .eq-seller { background:var(--gray-light); border-radius:12px 12px 12px 2px; }
-  .eq-dispute { background:#fee2e2; border:1px solid #fca5a5; border-radius:12px; }
-  .eq-name { font-size:.75rem; font-weight:700; color:var(--text-muted); margin-bottom:.25rem; }
-  .eq-text { font-size:.9rem; line-height:1.5; }
-  .eq-time { font-size:.72rem; color:var(--text-muted); margin-top:.3rem; text-align:right; }
+/* Grid */
+.od-grid { display:grid; grid-template-columns:1fr 320px; gap:1.5rem; align-items:start; }
+@media(max-width:720px){ .od-grid { grid-template-columns:1fr; } }
 
-  /* Action cards */
-  .action-card { border:1px solid var(--border); border-radius:10px; padding:1.25rem; }
-  .action-card h4 { font-weight:700; font-size:.9rem; margin-bottom:.75rem; }
+/* Cards */
+.od-card { background:#fff; border:1.5px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:1.25rem; }
+.od-card-head { padding:1rem 1.25rem; border-bottom:1px solid var(--border); font-weight:700; font-size:.9rem; display:flex; align-items:center; gap:.5rem; background:var(--gray-light); }
+.od-card-body { padding:1.25rem; }
+
+/* Timeline */
+.tl { position:relative; padding-left:1.75rem; }
+.tl::before { content:''; position:absolute; left:.45rem; top:4px; bottom:4px; width:2px; background:var(--border); }
+.tl-row { position:relative; margin-bottom:1.25rem; }
+.tl-row:last-child { margin-bottom:0; }
+.tl-dot { position:absolute; left:-1.75rem; top:.25rem; width:12px; height:12px; border-radius:50%; background:var(--border); border:2px solid #fff; box-shadow:0 0 0 2px var(--border); transition:all .2s; }
+.tl-dot.done   { background:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.25); }
+.tl-dot.active { background:var(--gold); box-shadow:0 0 0 5px rgba(212,175,55,.2); }
+.tl-dot.error  { background:#ef4444; box-shadow:0 0 0 3px rgba(239,68,68,.2); }
+.tl-label { font-weight:700; font-size:.875rem; }
+.tl-sub   { font-size:.78rem; color:var(--text-muted); margin-top:.1rem; }
+
+/* Hub status */
+.hub-pill { display:inline-flex; align-items:center; gap:.3rem; font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:20px; }
+.hs-pending  { background:#fef9c3; color:#92400e; }
+.hs-transit  { background:#dbeafe; color:#1d4ed8; }
+.hs-received { background:#dcfce7; color:#15803d; }
+.hs-packaged { background:#e0e7ff; color:#4338ca; }
+
+/* QR code section */
+.qr-wrap { background:linear-gradient(135deg,#0f172a,#1e293b); border-radius:14px; padding:1.5rem; text-align:center; color:#fff; }
+.qr-box  { background:#fff; border-radius:10px; padding:1rem; display:inline-block; margin:1rem auto; }
+.qr-ref  { font-family:monospace; font-size:.75rem; color:rgba(255,255,255,.5); margin-top:.5rem; word-break:break-all; }
+
+/* Chat */
+.chat-box { height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:.6rem; padding:.75rem; background:#fafafa; border-radius:8px; margin-bottom:.75rem; }
+.chat-msg { max-width:80%; }
+.chat-msg.me { margin-left:auto; }
+.chat-bubble { padding:.65rem 1rem; border-radius:12px; font-size:.875rem; line-height:1.4; }
+.chat-msg.me .chat-bubble   { background:var(--gold); color:#fff; border-radius:12px 12px 2px 12px; }
+.chat-msg.them .chat-bubble { background:#fff; border:1px solid var(--border); border-radius:12px 12px 12px 2px; }
+.chat-msg.dispute .chat-bubble { background:#fee2e2; border:1px solid #fca5a5; border-radius:12px; }
+.chat-name { font-size:.7rem; font-weight:700; color:var(--text-muted); margin-bottom:.2rem; }
+.chat-time { font-size:.68rem; color:var(--text-muted); margin-top:.2rem; text-align:right; }
+
+/* Action boxes */
+.act-box { border:1.5px solid var(--border); border-radius:12px; padding:1.1rem; margin-bottom:1rem; }
+.act-box.gold-border { border-color:var(--gold); background:rgba(212,175,55,.04); }
+.act-box.red-border  { border-color:#fca5a5; }
+.act-box h4 { font-weight:700; font-size:.875rem; margin-bottom:.6rem; }
+
+/* Items */
+.item-row { display:flex; align-items:center; gap:.875rem; padding:.65rem 0; border-bottom:1px solid var(--border); }
+.item-row:last-child { border-bottom:none; }
+.item-img { width:44px; height:44px; border-radius:8px; background:var(--gray-light); display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; overflow:hidden; }
+.item-img img { width:100%;height:100%;object-fit:cover; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="padding-top:80px">
-<div class="od-wrap">
+{% load static %}
+<div style="padding-top:74px">
+<div class="od-page">
 
-  <!-- Back -->
-  <a href="{% url 'customer_profile' %}" style="display:inline-flex;align-items:center;gap:.4rem;color:var(--text-muted);font-size:.875rem;margin-bottom:1.25rem;text-decoration:none">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+  <!-- Back link — goes to right profile based on role -->
+  {% if user == order.buyer %}
+  <a href="{% url 'customer_profile' %}" style="display:inline-flex;align-items:center;gap:.35rem;color:var(--text-muted);font-size:.875rem;margin-bottom:1.25rem;text-decoration:none">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
     Back to My Orders
   </a>
+  {% else %}
+  <a href="{% url 'seller_profile' %}" style="display:inline-flex;align-items:center;gap:.35rem;color:var(--text-muted);font-size:.875rem;margin-bottom:1.25rem;text-decoration:none">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Back to Seller Dashboard
+  </a>
+  {% endif %}
 
   <!-- Header -->
   <div class="od-header">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
       <div>
-        <div class="od-order-num">Order #{{ order.pk }}</div>
-        <div class="od-sub">Placed {{ order.created_at|date:"N j, Y · g:i A" }} · <a href="{% url 'brand_detail' order.brand.id %}" style="color:var(--gold)">{{ order.brand.name }}</a></div>
+        <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:.4rem">
+          <span class="od-title">Order #{{ order.pk }}</span>
+          <span class="od-status-pill sp-{{ order.status }}">
+            {% if order.status == 'paid' %}🔒{% elif order.status == 'shipped' %}📦{% elif order.status == 'confirmed' %}✅{% elif order.status == 'disputed' %}⚠{% elif order.status == 'cancelled' %}✕{% else %}⏳{% endif %}
+            {{ order.get_status_display }}
+          </span>
+          {% if user == order.buyer %}
+          <span class="role-badge role-customer">👤 Buyer View</span>
+          {% else %}
+          <span class="role-badge role-seller">🏪 Seller View</span>
+          {% endif %}
+        </div>
+        <div class="od-meta">
+          {{ order.created_at|date:"N j, Y · g:i A" }} ·
+          {% if user == order.buyer %}Seller: <a href="{% url 'brand_detail' order.brand.id %}" style="color:var(--gold)">{{ order.brand.name }}</a>
+          {% else %}Buyer: <strong style="color:#fff">{{ order.buyer.first_name|default:order.buyer.username }}</strong>{% endif %}
+          {% if order.master_order and order.master_order.hub_bin %} · Bin: <span style="color:var(--gold);font-family:monospace;font-weight:700">{{ order.master_order.hub_bin }}</span>{% endif %}
+        </div>
       </div>
-      <span class="od-status od-status-{{ order.status }}">
-        {% if order.status == 'paid' %}🔒{% elif order.status == 'shipped' %}📦{% elif order.status == 'confirmed' %}✅{% elif order.status == 'disputed' %}⚠{% elif order.status == 'cancelled' %}✕{% elif order.status == 'refunded' %}↩{% else %}⏳{% endif %}
-        {{ order.get_status_display }}
-      </span>
+      <div style="text-align:right">
+        <div style="font-size:1.4rem;font-weight:900;color:var(--gold)">₦{{ order.total|floatformat:0 }}</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.4)">Total paid</div>
+      </div>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start">
+  <div class="od-grid">
 
-    <!-- LEFT column -->
+    <!-- LEFT COLUMN -->
     <div>
 
-      <!-- Order Timeline -->
-      <div class="card card-body" style="margin-bottom:1.5rem">
-        <h3 style="font-weight:700;margin-bottom:1.25rem">📍 Order Timeline</h3>
-        <div class="timeline">
-          <div class="tl-item">
-            <div class="tl-dot done"></div>
-            <div class="tl-label">Order Placed</div>
-            <div class="tl-sub">{{ order.created_at|date:"N j, Y · g:i A" }}</div>
-          </div>
-          <div class="tl-item">
-            <div class="tl-dot {% if order.status != 'pending' %}done{% endif %}"></div>
-            <div class="tl-label" style="{% if order.status == 'pending' %}color:var(--text-muted){% endif %}">Payment Confirmed</div>
-            {% if order.escrow_held_at %}
-            <div class="tl-sub">{{ order.escrow_held_at|date:"N j, Y · g:i A" }} · Funds held in escrow</div>
-            {% else %}<div class="tl-sub">Awaiting payment</div>{% endif %}
-          </div>
-          <div class="tl-item">
-            <div class="tl-dot {% if order.status in 'shipped,delivered,confirmed' %}done{% elif order.status == 'disputed' %}error{% endif %}"></div>
-            <div class="tl-label" style="{% if order.status == 'paid' or order.status == 'pending' %}color:var(--text-muted){% endif %}">
-              {% if order.status == 'disputed' %}⚠ Disputed{% else %}Shipped / Out for Delivery{% endif %}
+      <!-- ── SELLER VIEW: Hub QR Code ── -->
+      {% if user != order.buyer and order.status == 'paid' and order.hub_status == 'pending_vendor_shipment' %}
+      <div class="od-card" style="border-color:var(--gold)">
+        <div class="od-card-head" style="background:linear-gradient(135deg,#fffbeb,#fef9c3)">📋 Action Required — Drop at OJA Hub</div>
+        <div class="od-card-body">
+          <p style="font-size:.875rem;margin-bottom:1.25rem;color:var(--text-muted)">
+            Package your items and drop them at the <strong>OJA Hub desk</strong>. Show the QR code below or give your Sub-Order ID to the hub staff to scan in.
+          </p>
+          <div class="qr-wrap">
+            <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.5);margin-bottom:.5rem">Sub-Order QR Code</div>
+            <!-- QR generated via Google Charts API -->
+            <div class="qr-box">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=OJA-ORDER-{{ order.pk }}-{{ order.payment_reference|truncatechars:12 }}"
+                   alt="QR Code" width="160" height="160" style="display:block">
             </div>
-            <div class="tl-sub">
-              {% if order.status == 'shipped' %}Order is on its way
-              {% elif order.status == 'delivered' %}Arrived at delivery point
-              {% elif order.status == 'disputed' %}Dispute raised — under review
-              {% elif order.status == 'cancelled' %}Order was cancelled
-              {% else %}Seller will pack and ship{% endif %}
-            </div>
+            <div style="font-size:1.25rem;font-weight:900;color:#fff;letter-spacing:.08em">SUB-{{ order.pk }}</div>
+            <div class="qr-ref">{{ order.payment_reference }}</div>
+            <button onclick="window.print()" style="margin-top:1rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:.5rem 1.25rem;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer">🖨 Print QR</button>
           </div>
-          <div class="tl-item">
-            <div class="tl-dot {% if order.status == 'confirmed' %}done{% endif %}"></div>
-            <div class="tl-label" style="{% if order.status != 'confirmed' %}color:var(--text-muted){% endif %}">Delivered & Confirmed</div>
-            {% if order.confirmed_at %}
-            <div class="tl-sub">{{ order.confirmed_at|date:"N j, Y · g:i A" }} · Funds released to seller</div>
-            {% else %}<div class="tl-sub">You'll confirm once you receive your item</div>{% endif %}
+          <div style="margin-top:1.25rem">
+            <form method="post" action="{% url 'mark_order_shipped' order.pk %}">{% csrf_token %}
+              <button type="submit" class="btn-gold w-full" style="justify-content:center">📦 I've Dropped at Hub — Mark as Shipped</button>
+            </form>
           </div>
         </div>
-      </div>
-
-      <!-- Items -->
-      <div class="card card-body" style="margin-bottom:1.5rem">
-        <h3 style="font-weight:700;margin-bottom:1rem">🛍 Items Ordered</h3>
-        {% for item in order.items.all %}
-        <div style="display:flex;align-items:center;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--border)">
-          <div style="width:52px;height:52px;border-radius:8px;background:var(--gray-light);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;overflow:hidden">
-            {% if item.product and item.product.image %}<img src="{{ item.product.image.url }}" style="width:100%;height:100%;object-fit:cover">{% else %}📦{% endif %}
-          </div>
-          <div style="flex:1">
-            <div style="font-weight:600">{{ item.product_name }}</div>
-            <div style="font-size:.85rem;color:var(--text-muted)">Qty: {{ item.quantity }} × ₦{{ item.product_price|floatformat:0 }}</div>
-          </div>
-          <div style="font-weight:700">₦{{ item.line_total|floatformat:0 }}</div>
-        </div>
-        {% endfor %}
-        <!-- Totals -->
-        <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.35rem">
-          <div style="display:flex;justify-content:space-between;font-size:.9rem;color:var(--text-muted)"><span>Subtotal</span><span>₦{{ order.subtotal|floatformat:0 }}</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:.9rem;color:var(--text-muted)"><span>Delivery{% if order.delivery_zone %} · {{ order.delivery_zone.name }}{% endif %}</span><span>₦{{ order.delivery_fee|floatformat:0 }}</span></div>
-          <div style="display:flex;justify-content:space-between;font-weight:800;font-size:1.05rem;border-top:1px solid var(--border);padding-top:.5rem;margin-top:.25rem"><span>Total Paid</span><span class="text-gold">₦{{ order.total|floatformat:0 }}</span></div>
-        </div>
-      </div>
-
-      <!-- Delivery info -->
-      {% if order.delivery_address or order.runner_note %}
-      <div class="card card-body" style="margin-bottom:1.5rem">
-        <h3 style="font-weight:700;margin-bottom:.75rem">🛵 Delivery Details</h3>
-        {% if order.delivery_address %}<div style="font-size:.9rem;margin-bottom:.4rem"><strong>Address:</strong> {{ order.delivery_address }}</div>{% endif %}
-        {% if order.runner_note %}<div style="font-size:.9rem;color:var(--text-muted)"><strong>Note:</strong> {{ order.runner_note }}</div>{% endif %}
       </div>
       {% endif %}
 
-      <!-- Enquiry / Chat thread -->
-      <div class="card card-body" style="margin-bottom:1.5rem">
-        <h3 style="font-weight:700;margin-bottom:1rem">💬 Messages with Seller</h3>
-
-        {% if enquiries %}
-        <div style="margin-bottom:1.25rem">
-          {% for eq in enquiries %}
-          <div>
-            {% if eq.sender == user %}
-              <div style="display:flex;justify-content:flex-end">
-                <div class="eq-bubble eq-buyer {% if eq.enquiry_type == 'dispute' %}eq-dispute{% endif %}">
-                  <div class="eq-name">You{% if eq.enquiry_type == 'dispute' %} · DISPUTE{% endif %}</div>
-                  <div class="eq-text">{{ eq.message }}</div>
-                  <div class="eq-time">{{ eq.created_at|date:"N j · g:i A" }}</div>
-                </div>
-              </div>
-            {% else %}
-              <div class="eq-bubble eq-seller">
-                <div class="eq-name">{{ order.brand.name }}</div>
-                <div class="eq-text">{{ eq.message }}</div>
-                <div class="eq-time">{{ eq.created_at|date:"N j · g:i A" }}</div>
-              </div>
-            {% endif %}
+      <!-- ── Hub Tracking (both views) ── -->
+      {% if master %}
+      <div class="od-card">
+        <div class="od-card-head">📦 Consolidated Delivery Status</div>
+        <div class="od-card-body">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.875rem">
+            <div>
+              <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-weight:700">Master Order</div>
+              <div style="font-weight:800;font-family:monospace;font-size:.875rem">{{ master.payment_reference|truncatechars:18 }}</div>
+            </div>
+            {% if master.hub_bin %}<span style="background:#1e293b;color:var(--gold);font-size:.8rem;font-weight:800;padding:.3rem .9rem;border-radius:8px;font-family:monospace">{{ master.hub_bin }}</span>{% endif %}
+          </div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.4rem">{{ master.arrived_count }}/{{ master.total_sub_orders }} items checked in at OJA Hub</div>
+          <div style="background:var(--border);border-radius:20px;height:6px;margin-bottom:1rem">
+            <div style="height:100%;background:var(--gold);border-radius:20px;width:{% if master.total_sub_orders %}{% widthratio master.arrived_count master.total_sub_orders 100 %}{% else %}0{% endif %}%"></div>
+          </div>
+          <!-- This order's status -->
+          <div style="display:flex;align-items:center;gap:.75rem;background:var(--gray-light);border-radius:8px;padding:.75rem;margin-bottom:.75rem">
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:.875rem">{{ order.brand.name }}</div>
+              <div style="font-size:.75rem;color:var(--text-muted)">Sub-Order #{{ order.pk }}</div>
+            </div>
+            <span class="hub-pill hs-{% if order.hub_status == 'pending_vendor_shipment' %}pending{% elif order.hub_status == 'in_transit_to_hub' %}transit{% elif order.hub_status == 'received_at_hub' %}received{% else %}packaged{% endif %}">
+              {% if order.hub_status == 'pending_vendor_shipment' %}⏳ Preparing{% elif order.hub_status == 'in_transit_to_hub' %}🚚 In Transit{% elif order.hub_status == 'received_at_hub' %}✓ At Hub{% else %}📦 Packed{% endif %}
+            </span>
+          </div>
+          {% if siblings %}
+          <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:.4rem">Other vendors</div>
+          {% for sib in siblings %}
+          <div style="display:flex;align-items:center;gap:.75rem;padding:.45rem 0;border-top:1px solid var(--border)">
+            <div style="font-size:.875rem;font-weight:600;flex:1">{{ sib.brand.name }}</div>
+            <span class="hub-pill hs-{% if sib.hub_status == 'pending_vendor_shipment' %}pending{% elif sib.hub_status == 'in_transit_to_hub' %}transit{% elif sib.hub_status == 'received_at_hub' %}received{% else %}packaged{% endif %}">
+              {% if sib.hub_status == 'pending_vendor_shipment' %}⏳{% elif sib.hub_status == 'in_transit_to_hub' %}🚚{% elif sib.hub_status == 'received_at_hub' %}✓{% else %}📦{% endif %}
+              {{ sib.get_hub_status_display }}
+            </span>
           </div>
           {% endfor %}
+          {% endif %}
         </div>
-        {% else %}
-        <p style="color:var(--text-muted);font-size:.875rem;margin-bottom:1rem">No messages yet. Ask the seller anything about your order.</p>
-        {% endif %}
+      </div>
+      {% endif %}
 
-        <!-- Send message form -->
-        {% if order.status not in 'cancelled,refunded,confirmed' %}
-        <form method="post" action="{% url 'send_enquiry' order.pk %}">
-          {% csrf_token %}
-          <div style="display:flex;gap:.5rem">
-            <input type="text" name="message" placeholder="Ask the seller something…" class="input-field" style="flex:1" required>
-            <button type="submit" class="btn-gold" style="padding:.6rem 1.1rem;white-space:nowrap">Send</button>
+      <!-- Order Timeline -->
+      <div class="od-card">
+        <div class="od-card-head">📍 Order Timeline</div>
+        <div class="od-card-body">
+          <div class="tl">
+            <div class="tl-row"><div class="tl-dot done"></div>
+              <div class="tl-label">Order Placed</div>
+              <div class="tl-sub">{{ order.created_at|date:"N j, Y · g:i A" }}</div>
+            </div>
+            <div class="tl-row"><div class="tl-dot {% if order.status != 'pending' %}done{% endif %}"></div>
+              <div class="tl-label" {% if order.status == 'pending' %}style="color:var(--text-muted)"{% endif %}>Payment Confirmed — Escrow Active</div>
+              <div class="tl-sub">{% if order.escrow_held_at %}{{ order.escrow_held_at|date:"N j, Y · g:i A" }}{% else %}Awaiting payment{% endif %}</div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-dot {% if order.hub_status == 'received_at_hub' or order.hub_status == 'packaged_for_customer' %}done{% elif order.hub_status == 'in_transit_to_hub' %}active{% endif %}"></div>
+              <div class="tl-label" {% if order.hub_status == 'pending_vendor_shipment' %}style="color:var(--text-muted)"{% endif %}>
+                {% if user == order.buyer %}Seller Drops Package at Hub{% else %}Drop Package at OJA Hub{% endif %}
+              </div>
+              <div class="tl-sub">{% if order.hub_received_at %}Received {{ order.hub_received_at|date:"N j · g:i A" }}{% else %}Pending{% endif %}</div>
+            </div>
+            <div class="tl-row"><div class="tl-dot {% if order.status == 'shipped' or order.status == 'confirmed' %}done{% endif %}"></div>
+              <div class="tl-label" {% if order.status not in 'shipped,confirmed' %}style="color:var(--text-muted)"{% endif %}>Hub Packs & Dispatches Rider</div>
+              <div class="tl-sub">All vendors' items packed into one OJA bag</div>
+            </div>
+            <div class="tl-row"><div class="tl-dot {% if order.status == 'confirmed' %}done{% endif %}"></div>
+              <div class="tl-label" {% if order.status != 'confirmed' %}style="color:var(--text-muted)"{% endif %}>Delivered & Confirmed</div>
+              <div class="tl-sub">{% if order.confirmed_at %}{{ order.confirmed_at|date:"N j, Y" }} — funds released{% else %}Buyer confirms receipt{% endif %}</div>
+            </div>
           </div>
-        </form>
-        {% endif %}
+        </div>
+      </div>
+
+      <!-- Items Ordered -->
+      <div class="od-card">
+        <div class="od-card-head">🛍 Items Ordered</div>
+        <div class="od-card-body">
+          {% for item in order.items.all %}
+          <div class="item-row">
+            <div class="item-img">{% if item.product and item.product.image %}<img src="{{ item.product.image.url }}">{% else %}📦{% endif %}</div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:.875rem">{{ item.product_name }}</div>
+              <div style="font-size:.8rem;color:var(--text-muted)">Qty: {{ item.quantity }} × ₦{{ item.product_price|floatformat:0 }}</div>
+            </div>
+            <div style="font-weight:700">₦{{ item.line_total|floatformat:0 }}</div>
+          </div>
+          {% endfor %}
+          <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.3rem">
+            <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--text-muted)"><span>Subtotal</span><span>₦{{ order.subtotal|floatformat:0 }}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--text-muted)"><span>Delivery{% if order.delivery_zone %} · {{ order.delivery_zone.name }}{% endif %}</span><span>₦{{ order.delivery_fee|floatformat:0 }}</span></div>
+            {% if user != order.buyer %}
+            <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--text-muted)"><span>Commission ({{ order.brand.commission_rate }}%)</span><span>-₦{{ order.commission_amount|floatformat:0 }}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.85rem;color:#15803d;font-weight:700"><span>Your Payout</span><span>₦{{ order.vendor_payout|floatformat:0 }}</span></div>
+            {% endif %}
+            <div style="display:flex;justify-content:space-between;font-weight:800;font-size:1rem;border-top:1px solid var(--border);padding-top:.5rem;margin-top:.25rem"><span>Total</span><span style="color:var(--gold)">₦{{ order.total|floatformat:0 }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery details -->
+      {% if order.delivery_address or order.runner_note %}
+      <div class="od-card">
+        <div class="od-card-head">🛵 Delivery Details</div>
+        <div class="od-card-body" style="font-size:.875rem">
+          {% if order.delivery_address %}<p><strong>Address:</strong> {{ order.delivery_address }}</p>{% endif %}
+          {% if order.runner_note %}<p style="color:var(--text-muted)"><strong>Note for runner:</strong> {{ order.runner_note }}</p>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ── CHAT / MESSAGES ── -->
+      <div class="od-card">
+        <div class="od-card-head">
+          💬 {% if user == order.buyer %}Message the Seller{% else %}Message the Buyer{% endif %}
+        </div>
+        <div class="od-card-body">
+          <div class="chat-box" id="chatBox">
+            {% if enquiries %}
+              {% for eq in enquiries %}
+              <div class="chat-msg {% if eq.sender == user %}me{% elif eq.enquiry_type == 'dispute' %}dispute{% else %}them{% endif %}">
+                <div class="chat-name">
+                  {% if eq.sender == user %}You{% elif eq.enquiry_type == 'dispute' %}⚠ Dispute{% else %}{{ eq.sender.first_name|default:eq.sender.username }}{% endif %}
+                </div>
+                <div class="chat-bubble">{{ eq.message }}</div>
+                <div class="chat-time">{{ eq.created_at|date:"N j · g:i A" }}</div>
+              </div>
+              {% endfor %}
+            {% else %}
+            <div style="text-align:center;color:var(--text-muted);font-size:.85rem;margin:auto;padding:2rem 0">
+              No messages yet. Start the conversation below.
+            </div>
+            {% endif %}
+          </div>
+          {% if order.status not in 'cancelled,refunded,confirmed' %}
+          <form method="post" action="{% if user == order.buyer %}{% url 'send_enquiry' order.pk %}{% else %}{% url 'reply_enquiry' order.pk %}{% endif %}">
+            {% csrf_token %}
+            <div style="display:flex;gap:.5rem">
+              <input type="text" name="message" placeholder="Type a message…" class="input-field" style="flex:1" required>
+              <button type="submit" class="btn-gold" style="padding:.6rem 1.1rem;white-space:nowrap">Send</button>
+            </div>
+          </form>
+          {% endif %}
+        </div>
       </div>
 
     </div>
 
-    <!-- RIGHT column — actions -->
-    <div style="display:flex;flex-direction:column;gap:1rem">
+    <!-- RIGHT COLUMN — Actions -->
+    <div>
 
-      <!-- Escrow box -->
-      {% if order.status == 'paid' or order.status == 'shipped' %}
-      <div style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1.5px solid var(--gold);border-radius:10px;padding:1.25rem">
-        <div style="font-weight:700;margin-bottom:.4rem">🔒 Funds in Escrow</div>
-        <div style="font-size:.875rem;color:var(--text-muted);margin-bottom:.75rem">₦{{ order.total|floatformat:0 }} is held safely. Release to seller only when your item arrives.</div>
-        {% if order.status == 'shipped' or order.status == 'delivered' %}
-        <form method="post" action="{% url 'confirm_delivery' order.pk %}">
-          {% csrf_token %}
-          <button type="submit" class="btn-gold w-full" style="justify-content:center;font-size:.9rem">✅ Item Received — Release Funds</button>
-        </form>
-        {% else %}
-        <div style="font-size:.8rem;color:var(--text-muted)">Button will activate once seller ships.</div>
+      <!-- SELLER-SPECIFIC ACTIONS -->
+      {% if user != order.buyer %}
+
+        {% if order.hub_status == 'received_at_hub' %}
+        <div class="act-box" style="background:#f0fdf4;border-color:#86efac">
+          <div style="font-size:1.25rem;text-align:center;margin-bottom:.5rem">✓</div>
+          <div style="font-weight:700;color:#15803d;text-align:center;margin-bottom:.25rem">At OJA Hub</div>
+          <div style="font-size:.8rem;color:#15803d;text-align:center">Received {{ order.hub_received_at|date:"g:i A, N j" }}</div>
+        </div>
         {% endif %}
-      </div>
-      {% endif %}
 
-      <!-- Confirmed -->
-      {% if order.status == 'confirmed' %}
-      <div style="background:#dcfce7;border:1.5px solid #86efac;border-radius:10px;padding:1.25rem;text-align:center">
-        <div style="font-size:1.75rem;margin-bottom:.35rem">✅</div>
-        <div style="font-weight:700;color:#15803d">Order Complete</div>
-        <div style="font-size:.8rem;color:#15803d;margin-top:.25rem">Funds released to seller</div>
-      </div>
-      {% endif %}
+        <div class="act-box">
+          <h4>💰 Your Earnings</h4>
+          <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:.3rem"><span style="color:var(--text-muted)">Subtotal</span><span>₦{{ order.subtotal|floatformat:0 }}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:.3rem"><span style="color:var(--text-muted)">Commission</span><span style="color:#ef4444">-₦{{ order.commission_amount|floatformat:0 }}</span></div>
+          <div style="display:flex;justify-content:space-between;font-weight:800;font-size:1rem;border-top:1px solid var(--border);padding-top:.5rem;margin-top:.3rem"><span>Your payout</span><span style="color:var(--gold)">₦{{ order.vendor_payout|floatformat:0 }}</span></div>
+          {% if order.status == 'paid' or order.status == 'shipped' %}
+          <div style="font-size:.75rem;color:var(--text-muted);margin-top:.5rem">🔒 In escrow until buyer confirms</div>
+          {% elif order.status == 'confirmed' %}
+          <div style="font-size:.75rem;color:#15803d;font-weight:600;margin-top:.5rem">✓ Released to your wallet</div>
+          {% endif %}
+        </div>
 
-      <!-- Cancel -->
-      {% if order.status in 'pending,paid' %}
-      <div class="action-card">
-        <h4>❌ Cancel Order</h4>
-        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem">You can cancel before the seller ships. Stock will be restored.</p>
-        <form method="post" action="{% url 'cancel_order' order.pk %}" onsubmit="return confirm('Cancel this order? This cannot be undone.')">
-          {% csrf_token %}
-          <div class="form-group" style="margin-bottom:.75rem">
-            <input type="text" name="reason" placeholder="Reason (optional)" class="input-field">
+        <div class="act-box">
+          <h4>📋 Order Info</h4>
+          <div style="font-size:.8rem;display:flex;flex-direction:column;gap:.35rem">
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Status</span><span class="od-status-pill sp-{{ order.status }}" style="padding:.15rem .6rem;font-size:.72rem">{{ order.get_status_display }}</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Hub Status</span><span class="hub-pill hs-{% if order.hub_status == 'pending_vendor_shipment' %}pending{% elif order.hub_status == 'in_transit_to_hub' %}transit{% elif order.hub_status == 'received_at_hub' %}received{% else %}packaged{% endif %}">{{ order.get_hub_status_display }}</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Ref</span><code style="font-size:.72rem">{{ order.payment_reference|truncatechars:14 }}</code></div>
           </div>
-          <button type="submit" class="btn-danger w-full">Cancel Order</button>
-        </form>
-      </div>
-      {% endif %}
+        </div>
 
-      <!-- Dispute -->
-      {% if order.status in 'paid,shipped,delivered' %}
-      <div class="action-card" style="border-color:#fca5a5">
-        <h4>⚠ Raise a Dispute</h4>
-        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem">Item not arrived, wrong item, or damaged? Raise a dispute and our team will review.</p>
-        <form method="post" action="{% url 'dispute_order' order.pk %}">
-          {% csrf_token %}
-          <div class="form-group" style="margin-bottom:.75rem">
-            <textarea name="reason" rows="3" class="input-field" placeholder="Describe the issue clearly…" required></textarea>
-          </div>
-          <button type="submit" class="btn-danger w-full" style="background:#f59e0b;border-color:#f59e0b">⚠ Raise Dispute</button>
-        </form>
-      </div>
-      {% endif %}
+      <!-- CUSTOMER-SPECIFIC ACTIONS -->
+      {% else %}
 
-      <!-- Disputed state info -->
-      {% if order.status == 'disputed' %}
-      <div style="background:#fee2e2;border:1.5px solid #fca5a5;border-radius:10px;padding:1.25rem">
-        <div style="font-weight:700;color:#b91c1c;margin-bottom:.4rem">⚠ Dispute Under Review</div>
-        <div style="font-size:.875rem;color:#b91c1c">Our team has been notified and will resolve this within 24 hours. Funds are locked until resolved.</div>
-      </div>
-      {% endif %}
+        {% if order.status == 'paid' or order.status == 'shipped' %}
+        <div class="act-box gold-border">
+          <h4>🔒 Funds in Escrow</h4>
+          <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.875rem">₦{{ order.total|floatformat:0 }} safely held. Only released when you confirm receipt.</p>
+          {% if order.status == 'shipped' or order.status == 'delivered' %}
+          <form method="post" action="{% url 'confirm_delivery' order.pk %}">{% csrf_token %}
+            <button type="submit" class="btn-gold w-full" style="justify-content:center;font-size:.875rem">✅ Item Received — Release Funds</button>
+          </form>
+          {% else %}
+          <div style="font-size:.8rem;color:var(--text-muted)">Activates after seller ships</div>
+          {% endif %}
+        </div>
+        {% endif %}
 
-      <!-- Cancelled -->
-      {% if order.status == 'cancelled' %}
-      <div style="background:var(--gray-light);border-radius:10px;padding:1.25rem;text-align:center">
-        <div style="font-size:1.5rem;margin-bottom:.35rem">❌</div>
-        <div style="font-weight:700;color:var(--text-muted)">Order Cancelled</div>
-      </div>
-      {% endif %}
+        {% if order.status == 'confirmed' %}
+        <div class="act-box" style="background:#dcfce7;border-color:#86efac;text-align:center">
+          <div style="font-size:2rem;margin-bottom:.35rem">✅</div>
+          <div style="font-weight:700;color:#15803d">Complete</div>
+          <div style="font-size:.8rem;color:#15803d;margin-top:.2rem">Funds released to seller</div>
+        </div>
+        {% endif %}
 
-      <!-- Order ref -->
-      <div style="background:var(--gray-light);border-radius:8px;padding:1rem;font-size:.8rem">
-        <div style="font-weight:700;margin-bottom:.4rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Order Info</div>
-        <div>Ref: <code style="font-size:.75rem">{{ order.payment_reference|default:"—" }}</code></div>
-        <div style="margin-top:.25rem">Brand: {{ order.brand.name }}</div>
+        {% if order.status in 'pending,paid' %}
+        <div class="act-box red-border">
+          <h4>❌ Cancel Order</h4>
+          <form method="post" action="{% url 'cancel_order' order.pk %}" onsubmit="return confirm('Cancel? This cannot be undone.')">{% csrf_token %}
+            <input type="text" name="reason" placeholder="Reason (optional)" class="input-field" style="margin-bottom:.6rem">
+            <button type="submit" class="btn-danger w-full">Cancel Order</button>
+          </form>
+        </div>
+        {% endif %}
+
+        {% if order.status in 'paid,shipped,delivered' %}
+        <div class="act-box red-border">
+          <h4>⚠ Raise a Dispute</h4>
+          <form method="post" action="{% url 'dispute_order' order.pk %}">{% csrf_token %}
+            <textarea name="reason" rows="3" class="input-field" placeholder="Describe the issue…" required style="margin-bottom:.6rem"></textarea>
+            <button type="submit" class="btn-danger w-full" style="background:#f59e0b;border-color:#f59e0b">⚠ Raise Dispute</button>
+          </form>
+        </div>
+        {% endif %}
+
+        {% if order.status == 'disputed' %}
+        <div class="act-box" style="background:#fee2e2;border-color:#fca5a5">
+          <div style="font-weight:700;color:#b91c1c;margin-bottom:.3rem">⚠ Dispute Under Review</div>
+          <div style="font-size:.82rem;color:#b91c1c">Our team will resolve within 24 hours.</div>
+        </div>
+        {% endif %}
+
+        {% if order.status == 'cancelled' %}
+        <div class="act-box" style="text-align:center">
+          <div style="font-size:1.75rem;margin-bottom:.25rem">❌</div>
+          <div style="font-weight:700;color:var(--text-muted)">Cancelled</div>
+        </div>
+        {% endif %}
+
         {% if order.brand.whatsapp %}
-        <a href="https://wa.me/{{ order.brand.whatsapp }}?text=Hi, I have a question about Order %23{{ order.pk }}" target="_blank" style="display:inline-flex;align-items:center;gap:.35rem;margin-top:.75rem;color:#16a34a;font-weight:600;font-size:.85rem">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.554 4.118 1.523 5.854L.044 23.368l5.653-1.479A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.87 0-3.626-.5-5.147-1.376l-.369-.215-3.352.877.893-3.257-.239-.381A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-          WhatsApp Seller
-        </a>
+        <div class="act-box">
+          <h4>💬 Contact Seller</h4>
+          <a href="https://wa.me/{{ order.brand.whatsapp }}?text=Hi!+Question+about+Order+%23{{ order.pk }}" target="_blank" class="btn-gold w-full" style="justify-content:center;font-size:.875rem;display:flex">
+            WhatsApp {{ order.brand.name }}
+          </a>
+        </div>
+        {% endif %}
+
+      {% endif %}
+
+      <!-- Order ref info box -->
+      <div style="background:var(--gray-light);border-radius:10px;padding:1rem;font-size:.8rem">
+        <div style="font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-size:.7rem;margin-bottom:.5rem">Order Reference</div>
+        <code style="font-size:.75rem;word-break:break-all;color:var(--gray-dark)">{{ order.payment_reference|default:"—" }}</code>
+        {% if order.package_scan_id %}
+        <div style="margin-top:.35rem;color:var(--text-muted)">Scan ID: <code>{{ order.package_scan_id }}</code></div>
         {% endif %}
       </div>
 
@@ -280,4 +427,10 @@
   </div>
 </div>
 </div>
+
+<script>
+// Scroll chat to bottom
+var cb = document.getElementById('chatBox');
+if(cb) cb.scrollTop = cb.scrollHeight;
+</script>
 {% endblock %}
