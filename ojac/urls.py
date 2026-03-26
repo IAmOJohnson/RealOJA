@@ -15,7 +15,10 @@ from django.views.static import serve
 import os
 from django.conf import settings as _settings
 
+from django.views.generic import TemplateView
+
 urlpatterns += [
-    path('manifest.json', lambda r: serve(r, 'manifest.json', document_root=_settings.STATICFILES_DIRS[0] if _settings.STATICFILES_DIRS else _settings.STATIC_ROOT or ''), name='manifest'),
-    path('sw.js',         lambda r: serve(r, 'sw.js',          document_root=_settings.STATICFILES_DIRS[0] if _settings.STATICFILES_DIRS else _settings.STATIC_ROOT or ''), name='sw'),
+    # We use TemplateView to serve these as if they are at the root
+    path('manifest.json', TemplateView.as_view(template_name='marketplace/manifest.json', content_type='application/json')),
+    path('sw.js', TemplateView.as_view(template_name='marketplace/sw.js', content_type='application/javascript')),
 ]
