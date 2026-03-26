@@ -9,7 +9,7 @@ SECRET_KEY = 'django-insecure-replace-this-in-production-with-a-real-secret-key'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1',  'oja-lzug.onrender.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
