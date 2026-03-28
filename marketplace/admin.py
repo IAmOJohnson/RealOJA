@@ -92,3 +92,25 @@ class MasterOrderAdmin(admin.ModelAdmin):
     list_display = ('payment_reference', 'buyer', 'status', 'grand_total', 'hub_bin', 'arrived_count', 'total_sub_orders', 'created_at')
     list_filter  = ('status',)
     search_fields = ('payment_reference', 'buyer__username')
+
+# ── University & Campus Areas ──
+from .models import University, CampusArea
+
+class CampusAreaInline(admin.TabularInline):
+    model = CampusArea
+    extra = 3
+    fields = ('name', 'area_type', 'latitude', 'longitude', 'is_active')
+
+@admin.register(University)
+class UniversityAdmin(admin.ModelAdmin):
+    list_display  = ('name', 'short_name', 'city', 'state', 'is_active', 'created_at')
+    list_filter   = ('is_active', 'state')
+    search_fields = ('name', 'short_name', 'city')
+    list_editable = ('is_active',)
+    inlines       = [CampusAreaInline]
+
+@admin.register(CampusArea)
+class CampusAreaAdmin(admin.ModelAdmin):
+    list_display  = ('name', 'university', 'area_type', 'is_active')
+    list_filter   = ('area_type', 'university', 'is_active')
+    search_fields = ('name', 'university__name')

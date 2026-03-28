@@ -1,86 +1,275 @@
 {% extends 'marketplace/base.html' %}
 {% block title %}Sign Up — OJA Campus{% endblock %}
+
+{% block extra_head %}
+<style>
+.auth-page  { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:5rem 1rem 3rem; background:#fafafa; }
+.auth-card  { background:#fff; border:1.5px solid var(--border); border-radius:16px; padding:2.5rem; width:100%; max-width:580px; box-shadow:0 4px 32px rgba(0,0,0,.07); }
+.auth-logo  { text-align:center; margin-bottom:1.75rem; }
+.auth-logo .logo-img { height:56px; }
+.auth-logo h2 { font-size:1.5rem; font-weight:900; margin-top:.5rem; letter-spacing:-.02em; }
+.auth-logo p  { color:var(--text-muted); font-size:.875rem; margin-top:.2rem; }
+
+/* Type selector tabs */
+.type-tabs { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-bottom:1.75rem; }
+.type-tab  { border:1.5px solid var(--border); border-radius:12px; padding:1rem; text-align:center; text-decoration:none; color:var(--gray-dark); transition:all .15s; display:block; }
+.type-tab:hover  { border-color:var(--gold); background:rgba(212,175,55,.04); }
+.type-tab.active { border-color:var(--gold); background:rgba(212,175,55,.08); box-shadow:0 0 0 2px rgba(212,175,55,.2); }
+.type-icon { font-size:1.75rem; margin-bottom:.3rem; }
+.type-name { font-weight:800; font-size:.95rem; }
+.type-sub  { font-size:.75rem; color:var(--text-muted); margin-top:.1rem; }
+
+/* Searchable university picker */
+.uni-picker-wrap { position:relative; }
+.uni-picker-input { width:100%; }
+.uni-dropdown {
+  position:absolute; top:calc(100% + 2px); left:0; right:0; z-index:300;
+  background:#fff; border:1.5px solid var(--gold); border-radius:10px;
+  max-height:220px; overflow-y:auto; box-shadow:0 8px 28px rgba(0,0,0,.12);
+  display:none;
+}
+.uni-option {
+  padding:.65rem 1rem; cursor:pointer; display:flex; align-items:flex-start; gap:.75rem;
+  border-bottom:1px solid var(--border); transition:background .1s;
+}
+.uni-option:last-child { border-bottom:none; }
+.uni-option:hover { background:rgba(212,175,55,.06); }
+.uni-option-name { font-weight:700; font-size:.875rem; }
+.uni-option-sub  { font-size:.75rem; color:var(--text-muted); }
+.uni-empty { padding:1rem; text-align:center; color:var(--text-muted); font-size:.85rem; }
+
+/* Area chips */
+.area-grid { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+.area-chip { padding:.3rem .8rem; border:1.5px solid var(--border); border-radius:20px; font-size:.75rem; cursor:pointer; transition:all .15s; background:#fff; }
+.area-chip:hover,.area-chip.sel { border-color:var(--gold); background:rgba(212,175,55,.08); color:var(--gray-dark); font-weight:600; }
+
+.hint { font-size:.75rem; color:var(--text-muted); margin-top:.3rem; }
+.seller-notice { background:linear-gradient(135deg,#fff8e1,#fffde7); border:1.5px solid var(--gold); border-radius:10px; padding:1rem; margin-bottom:1.5rem; font-size:.85rem; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="auth-page">
-  <div class="auth-card card card-body" style="padding:2.5rem;max-width:560px">
-    <div style="text-align:center;margin-bottom:1.5rem">
-      <span class="logo-text" style="font-size:2rem">OJA</span>
-      <h2 style="margin-top:.5rem;font-size:1.5rem;font-weight:700">Create Account</h2>
-      <p class="text-muted" style="font-size:.875rem">Campus-verified marketplace</p>
+<div class="auth-card">
+
+  <div class="auth-logo">
+    {% load static %}
+    <img src="{% static 'img/oja_logo.png' %}" alt="OJA" class="logo-img">
+    <h2>Create Account</h2>
+    <p>Campus-verified marketplace</p>
+  </div>
+
+  <!-- Type selector -->
+  <div class="type-tabs">
+    <a href="{% url 'signup' %}?type=customer" class="type-tab {% if user_type == 'customer' %}active{% endif %}">
+      <div class="type-icon">🛒</div>
+      <div class="type-name">Customer</div>
+      <div class="type-sub">Shop on OJA</div>
+    </a>
+    <a href="{% url 'signup' %}?type=seller" class="type-tab {% if user_type == 'seller' %}active{% endif %}">
+      <div class="type-icon">🏪</div>
+      <div class="type-name">Seller</div>
+      <div class="type-sub">Open a Store</div>
+    </a>
+  </div>
+
+  {% if user_type == 'seller' %}
+  <div class="seller-notice">
+    🎓 <strong>Student Sellers Only</strong><br>
+    <span class="text-muted">Upload a valid student ID to open a store. This keeps OJA scam-free for the whole campus. Admin reviews within 24h.</span>
+  </div>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+  <div style="background:#fee2e2;border-radius:8px;padding:.875rem;margin-bottom:1.25rem;font-size:.85rem;color:#b91c1c">
+    {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" id="signupForm">
+    {% csrf_token %}
+
+    <!-- Full name + Email -->
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full Name</label>{{ form.first_name }}
+        {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label>Email</label>{{ form.email }}
+        {% if form.email.errors %}<div class="form-error">{{ form.email.errors.0 }}</div>{% endif %}
+      </div>
     </div>
 
-    <div class="type-selector">
-      <a href="{% url 'signup' %}?type=customer" class="type-card {% if user_type == 'customer' %}active{% endif %}">
-        <div class="type-icon">🛒</div><strong>Customer</strong>
-        <div class="text-muted" style="font-size:.8rem">Shop on OJA</div>
-      </a>
-      <a href="{% url 'signup' %}?type=seller" class="type-card {% if user_type == 'seller' %}active{% endif %}">
-        <div class="type-icon">🏪</div><strong>Seller</strong>
-        <div class="text-muted" style="font-size:.8rem">Sell on OJA</div>
-      </a>
+    <!-- University searchable dropdown -->
+    <div class="form-group">
+      <label>University {% if user_type == 'seller' %}<span style="color:#ef4444">*</span>{% else %}<span style="color:var(--text-muted);font-weight:400">(optional)</span>{% endif %}</label>
+
+      <!-- Hidden real select (used for form submission) -->
+      <div style="display:none">{{ form.university }}</div>
+
+      <!-- Visible searchable input -->
+      <div class="uni-picker-wrap">
+        <input type="text" id="uniSearch" class="input-field uni-picker-input"
+               placeholder="Search for your university…"
+               value="{% if form.university.value %}{% for uni in form.university.field.queryset %}{% if uni.id == form.university.value|add:'0' %}{{ uni.name }}{% endif %}{% endfor %}{% endif %}"
+               autocomplete="off">
+        <div class="uni-dropdown" id="uniDropdown"></div>
+      </div>
+      <div class="hint">📍 This determines which campus brands and delivery zones you see</div>
+      {% if form.university.errors %}<div class="form-error">{{ form.university.errors.0 }}</div>{% endif %}
+
+      <!-- Campus area selector (appears after university chosen) -->
+      <div id="areaSection" style="display:none;margin-top:.875rem">
+        <label style="font-size:.82rem;font-weight:700;margin-bottom:.4rem;display:block">Pick your main area on campus <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+        <div class="area-grid" id="areaGrid"></div>
+        <input type="hidden" id="selectedArea" name="campus_area">
+      </div>
+    </div>
+
+    <!-- Matric number -->
+    <div class="form-group">
+      <label>Matric Number {% if user_type != 'seller' %}<span style="color:var(--text-muted);font-weight:400">(optional)</span>{% else %}<span style="color:#ef4444">*</span>{% endif %}</label>
+      {{ form.matric_number }}
+      {% if form.matric_number.errors %}<div class="form-error">{{ form.matric_number.errors.0 }}</div>{% endif %}
     </div>
 
     {% if user_type == 'seller' %}
-    <div style="background:linear-gradient(135deg,#fff8e1,#fffde7);border:1.5px solid var(--gold);border-radius:var(--radius);padding:1rem;margin-bottom:1.5rem;font-size:.875rem">
-      <strong>🎓 Student Sellers Only</strong><br>
-      <span class="text-muted">You must upload a valid student ID to open a store. This keeps OJA scam-free for the whole campus.</span>
+    <!-- Student ID upload -->
+    <div class="form-group">
+      <label>Student ID Photo <span style="color:#ef4444">*</span></label>
+      {{ form.student_id_image }}
+      <div class="hint">Upload a clear photo of your student ID card. Reviewed by admin within 24h.</div>
+      {% if form.student_id_image.errors %}<div class="form-error">{{ form.student_id_image.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Store Name <span style="color:#ef4444">*</span></label>
+        {{ form.brand_name }}
+        {% if form.brand_name.errors %}<div class="form-error">{{ form.brand_name.errors.0 }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Store Description</label>
+      {{ form.brand_description }}
+      {% if form.brand_description.errors %}<div class="form-error">{{ form.brand_description.errors.0 }}</div>{% endif %}
     </div>
     {% endif %}
 
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <div class="form-group"><label>Full Name</label>{{ form.first_name }}
-        {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors.0 }}</div>{% endif %}
-      </div>
-      <div class="form-group"><label>Email</label>{{ form.email }}
-        {% if form.email.errors %}<div class="form-error">{{ form.email.errors.0 }}</div>{% endif %}
-      </div>
-
-      {% if user_type == 'seller' %}
-      <div class="form-row">
-        <div class="form-group"><label>Matric Number</label>{{ form.matric_number }}
-          {% if form.matric_number.errors %}<div class="form-error">{{ form.matric_number.errors.0 }}</div>{% endif %}
-        </div>
-        <div class="form-group"><label>University</label>{{ form.university }}
-          {% if form.university.errors %}<div class="form-error">{{ form.university.errors.0 }}</div>{% endif %}
-        </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Password</label>{{ form.password1 }}
+        {% if form.password1.errors %}<div class="form-error">{{ form.password1.errors.0 }}</div>{% endif %}
       </div>
       <div class="form-group">
-        <label>Student ID Photo <span style="color:var(--danger)">*</span></label>
-        {{ form.student_id_image }}
-        <div style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">Upload a clear photo of your student ID card. Reviewed by admin within 24h.</div>
-        {% if form.student_id_image.errors %}<div class="form-error">{{ form.student_id_image.errors.0 }}</div>{% endif %}
+        <label>Confirm Password</label>{{ form.password2 }}
+        {% if form.password2.errors %}<div class="form-error">{{ form.password2.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group"><label>Brand / Store Name</label>{{ form.brand_name }}
-        {% if form.brand_name.errors %}<div class="form-error">{{ form.brand_name.errors.0 }}</div>{% endif %}
-      </div>
-      <div class="form-group"><label>Store Description</label>{{ form.brand_description }}
-        {% if form.brand_description.errors %}<div class="form-error">{{ form.brand_description.errors.0 }}</div>{% endif %}
-      </div>
-      {% else %}
-      <div class="form-row">
-        <div class="form-group"><label>Matric Number (optional)</label>{{ form.matric_number }}</div>
-        <div class="form-group"><label>University (optional)</label>{{ form.university }}</div>
-      </div>
-      {% endif %}
+    </div>
 
-      <div class="form-row">
-        <div class="form-group"><label>Password</label>{{ form.password1 }}
-          {% if form.password1.errors %}<div class="form-error">{{ form.password1.errors.0 }}</div>{% endif %}
-        </div>
-        <div class="form-group"><label>Confirm Password</label>{{ form.password2 }}
-          {% if form.password2.errors %}<div class="form-error">{{ form.password2.errors.0 }}</div>{% endif %}
-        </div>
-      </div>
+    <button type="submit" class="btn-gold w-full" style="justify-content:center;margin-top:.5rem">
+      {% if user_type == 'seller' %}Create Seller Account 🏪{% else %}Create Account 🛒{% endif %}
+    </button>
+  </form>
 
-      <button type="submit" class="btn-gold w-full" style="justify-content:center">
-        {% if user_type == 'seller' %}Create Seller Account 🏪{% else %}Create Account 🛒{% endif %}
-      </button>
-    </form>
+  <p style="text-align:center;margin-top:1.5rem;font-size:.875rem;color:var(--text-muted)">
+    Already have an account? <a href="{% url 'login' %}" class="text-gold" style="font-weight:600">Login</a>
+  </p>
 
-    <p style="text-align:center;margin-top:1.5rem;font-size:.9rem;color:var(--text-muted)">
-      Already have an account? <a href="{% url 'login' %}" class="text-gold" style="font-weight:600">Login</a>
-    </p>
-  </div>
 </div>
+</div>
+
+<script>
+var uniSearch   = document.getElementById('uniSearch');
+var uniDropdown = document.getElementById('uniDropdown');
+var uniSelect   = document.getElementById('id_university_seller') || document.getElementById('id_university_customer');
+var areaSection = document.getElementById('areaSection');
+var areaGrid    = document.getElementById('areaGrid');
+var areaInput   = document.getElementById('selectedArea');
+var searchTimer = null;
+
+// Fetch & render university options
+function searchUniversities(q) {
+  fetch('/api/universities/?q=' + encodeURIComponent(q))
+    .then(r => r.json())
+    .then(data => {
+      if (!data.universities.length) {
+        uniDropdown.innerHTML = '<div class="uni-empty">No universities found for "' + q + '"</div>';
+      } else {
+        uniDropdown.innerHTML = data.universities.map(u => `
+          <div class="uni-option" onclick="selectUniversity(${u.id}, '${u.name.replace(/'/g,"\\'")}', ${u.latitude||'null'}, ${u.longitude||'null'})">
+            <span style="font-size:1.2rem;flex-shrink:0">🎓</span>
+            <div>
+              <div class="uni-option-name">${u.name}</div>
+              <div class="uni-option-sub">${u.city ? u.city + (u.state ? ', '+u.state : '') : u.short_name || ''}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+      uniDropdown.style.display = 'block';
+    })
+    .catch(() => { uniDropdown.style.display = 'none'; });
+}
+
+uniSearch.addEventListener('input', function() {
+  clearTimeout(searchTimer);
+  var q = this.value.trim();
+  if (q.length < 2) { uniDropdown.style.display = 'none'; return; }
+  searchTimer = setTimeout(() => searchUniversities(q), 250);
+});
+
+uniSearch.addEventListener('focus', function() {
+  if (this.value.length >= 2) searchUniversities(this.value);
+});
+
+document.addEventListener('click', function(e) {
+  if (!uniSearch.contains(e.target) && !uniDropdown.contains(e.target)) {
+    uniDropdown.style.display = 'none';
+  }
+});
+
+function selectUniversity(id, name, lat, lng) {
+  uniSearch.value = name;
+  if (uniSelect) uniSelect.value = id;
+  uniDropdown.style.display = 'none';
+  // Load campus areas
+  loadAreas(name);
+}
+
+function loadAreas(universityName) {
+  fetch('/api/campus-areas/?university=' + encodeURIComponent(universityName))
+    .then(r => r.json())
+    .then(data => {
+      if (data.areas && data.areas.length) {
+        var typeIcons = {hostel:'🏠', faculty:'🏛️', gate:'🚪', market:'🛒', other:'📍'};
+        areaGrid.innerHTML = data.areas.map(a =>
+          `<div class="area-chip" onclick="selectArea(this, '${a.name.replace(/'/g,"\\'")}')">
+            ${typeIcons[a.area_type]||'📍'} ${a.name}
+          </div>`
+        ).join('');
+        areaSection.style.display = 'block';
+      } else {
+        areaSection.style.display = 'none';
+      }
+    });
+}
+
+function selectArea(chip, name) {
+  document.querySelectorAll('.area-chip').forEach(c => c.classList.remove('sel'));
+  chip.classList.add('sel');
+  areaInput.value = name;
+}
+
+// On page load — if university already selected, show areas
+if (uniSelect && uniSelect.value) {
+  var opts = uniSelect.options;
+  for (var i = 0; i < opts.length; i++) {
+    if (opts[i].value == uniSelect.value) {
+      uniSearch.value = opts[i].text;
+      loadAreas(opts[i].text);
+      break;
+    }
+  }
+}
+</script>
 {% endblock %}

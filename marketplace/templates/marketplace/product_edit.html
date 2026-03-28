@@ -1,38 +1,110 @@
 {% extends 'marketplace/base.html' %}
 {% block title %}Edit {{ product.name }} — OJA{% endblock %}
+
+{% block extra_head %}
+<style>
+.pe-wrap { max-width:680px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+.pe-back { display:inline-flex; align-items:center; gap:.4rem; color:var(--text-muted); font-size:.875rem; text-decoration:none; margin-bottom:1.5rem; }
+.pe-back:hover { color:var(--gold); }
+.pe-card { background:#fff; border:1.5px solid var(--border); border-radius:16px; padding:2rem; margin-bottom:1.25rem; }
+.pe-title { font-size:1.25rem; font-weight:800; margin-bottom:1.5rem; }
+.disc-preview { font-size:.75rem; color:var(--gold); font-weight:600; margin-top:.3rem; min-height:1.1em; }
+.danger-zone { background:#fff5f5; border:1.5px solid #fca5a5; border-radius:12px; padding:1.25rem; }
+.danger-zone h4 { font-weight:700; color:#b91c1c; font-size:.875rem; margin-bottom:.4rem; }
+.danger-zone p { font-size:.8rem; color:#ef4444; margin-bottom:.875rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width:620px;margin:3rem auto;padding:0 1rem">
-  <a href="{% url 'seller_profile' %}" class="text-muted" style="font-size:.9rem;display:inline-block;margin-bottom:1.5rem">← Back to Dashboard</a>
-  <div class="card card-body" style="padding:2rem">
-    <h2 style="font-weight:700;font-size:1.25rem;margin-bottom:1.5rem">Edit Product</h2>
-    <form method="post" enctype="multipart/form-data">
+<div style="padding-top:74px">
+<div class="pe-wrap">
+  <a href="{% url 'seller_profile' %}" class="pe-back">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Back to Dashboard
+  </a>
+
+  <div class="pe-card">
+    <div class="pe-title">Edit Product</div>
+
+    {% if form.errors %}
+    <div style="background:#fee2e2;border-radius:8px;padding:.875rem;margin-bottom:1.25rem">
+      <div style="font-weight:700;color:#b91c1c;margin-bottom:.4rem">Fix these errors:</div>
+      {% for field in form %}{% for err in field.errors %}<div style="font-size:.85rem;color:#b91c1c">• {{ field.label }}: {{ err }}</div>{% endfor %}{% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- SAVE form (no action=delete here) -->
+    <form method="post" enctype="multipart/form-data" id="editForm">
       {% csrf_token %}
+
       <div class="form-row">
-        <div class="form-group"><label>Name</label>{{ form.name }}</div>
+        <div class="form-group"><label>Product Name</label>{{ form.name }}</div>
         <div class="form-group"><label>Category</label>{{ form.category }}</div>
       </div>
       <div class="form-group"><label>Description</label>{{ form.description }}</div>
       <div class="form-row">
-        <div class="form-group"><label>Price (₦)</label>{{ form.price }}</div>
-        <div class="form-group"><label>Original Price (₦)</label>{{ form.original_price }}</div>
+        <div class="form-group">
+          <label>Sale Price (₦)</label>{{ form.price }}
+        </div>
+        <div class="form-group">
+          <label>Original Price (₦)</label>{{ form.original_price }}
+          <div class="disc-preview" id="discPreview"></div>
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Stock</label>{{ form.stock }}</div>
         <div class="form-group"><label>Status</label>{{ form.status }}</div>
       </div>
       <div class="form-group">
-        <label>Image</label>{{ form.image }}
-        {% if product.image %}<img src="{{ product.image.url }}" style="height:64px;margin-top:.5rem;border-radius:4px">{% endif %}
+        <label>Product Image</label>{{ form.image }}
+        {% if product.image %}
+        <div style="margin-top:.5rem;display:flex;align-items:center;gap:.75rem">
+          <img src="{{ product.image.url }}" style="height:64px;border-radius:8px;object-fit:cover">
+          <span style="font-size:.75rem;color:var(--text-muted)">Current image — upload new to replace</span>
+        </div>
+        {% endif %}
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:2rem;gap:1rem">
-        <form method="post" onsubmit="return confirm('Delete this product?')">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="delete">
-          <button type="submit" class="btn-danger">Delete Product</button>
-        </form>
-        <button type="submit" class="btn-gold">Save Changes</button>
+      <div class="form-group"><label>Shipping Info</label>{{ form.shipping_info }}</div>
+      <div class="form-row">
+        <div class="form-group"><label>Warranty</label>{{ form.warranty }}</div>
+        <div class="form-group"><label>Return Policy</label>{{ form.return_policy }}</div>
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1.75rem">
+        <button type="submit" class="btn-gold" style="flex:1;justify-content:center">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:.3rem"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Changes
+        </button>
+        <a href="{% url 'seller_profile' %}" class="btn-outline">Cancel</a>
       </div>
     </form>
   </div>
+
+  <!-- DANGER ZONE — completely separate form, outside the edit form -->
+  <div class="danger-zone">
+    <h4>⚠ Danger Zone</h4>
+    <p>This will permanently delete "{{ product.name }}" and cannot be undone. All images and data will be removed.</p>
+    <form method="post" onsubmit="return confirm('Permanently delete {{ product.name }}? This cannot be undone.')">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete">
+      <button type="submit" class="btn-danger">🗑 Delete This Product</button>
+    </form>
+  </div>
+
 </div>
+</div>
+
+<script>
+var priceEl = document.querySelector('[name="price"]');
+var origEl  = document.querySelector('[name="original_price"]');
+var prev    = document.getElementById('discPreview');
+function updateDisc(){
+  var p = parseFloat(priceEl.value)||0, o = parseFloat(origEl.value)||0;
+  if(o > p && p > 0) prev.textContent = '→ ' + Math.round(((o-p)/o)*100) + '% discount auto-applied';
+  else prev.textContent = '';
+}
+if(priceEl) priceEl.addEventListener('input', updateDisc);
+if(origEl)  origEl.addEventListener('input', updateDisc);
+updateDisc();
+</script>
 {% endblock %}

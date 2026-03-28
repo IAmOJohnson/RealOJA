@@ -543,3 +543,47 @@ class SupportMessage(models.Model):
 
     def __str__(self):
         return f"{self.sender_type} — {self.user.username}: {self.message[:40]}"
+
+class University(models.Model):
+    """
+    Admin-managed list of campuses/universities.
+    Shown as dropdown when sellers/customers register.
+    """
+    name        = models.CharField(max_length=200, unique=True)
+    short_name  = models.CharField(max_length=30, blank=True, help_text='e.g. UI, UNILAG, OAU')
+    city        = models.CharField(max_length=100, blank=True)
+    state       = models.CharField(max_length=100, blank=True)
+    country     = models.CharField(max_length=100, default='Nigeria')
+    latitude    = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude   = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    is_active   = models.BooleanField(default=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name_plural = 'Universities'
+
+    def __str__(self):
+        return f"{self.name} ({self.city})" if self.city else self.name
+
+
+class CampusArea(models.Model):
+    """
+    Sub-areas within a university campus — hostels, faculties, gates.
+    Admin-managed, used for delivery zone suggestions.
+    """
+    university  = models.ForeignKey(University, on_delete=models.CASCADE, related_name='areas')
+    name        = models.CharField(max_length=200)
+    area_type   = models.CharField(max_length=20, choices=[
+        ('hostel', 'Hostel'), ('faculty', 'Faculty'),
+        ('gate', 'Gate'), ('market', 'Market'), ('other', 'Other'),
+    ], default='hostel')
+    latitude    = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude   = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    is_active   = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['area_type', 'name']
+
+    def __str__(self):
+        return f"{self.name} — {self.university.short_name or self.university.name}"

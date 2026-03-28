@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import User, Brand, Product, Review, Category, CampusZone
+from .models import User, Brand, Product, Review, Category, CampusZone, University
+
 from decimal import Decimal
 
 
@@ -8,7 +9,11 @@ class CustomerSignupForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'input-field', 'placeholder': 'your@email.com'}))
     first_name = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Full Name'}))
     matric_number = forms.CharField(max_length=30, required=False, widget=forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Matric / Registration Number (optional)'}))
-    university = forms.CharField(max_length=200, required=False, widget=forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'University name'}))
+    university = forms.ModelChoiceField(
+        queryset=University.objects.filter(is_active=True),
+        required=False, empty_label='-- Select your university (optional) --',
+        widget=forms.Select(attrs={'class': 'input-field', 'id': 'id_university_customer'})
+    )
 
     class Meta:
         model = User
@@ -21,7 +26,8 @@ class CustomerSignupForm(UserCreationForm):
         user.first_name = self.cleaned_data['first_name']
         user.user_type = 'customer'
         user.matric_number = self.cleaned_data.get('matric_number', '')
-        user.university = self.cleaned_data.get('university', '')
+        uni = self.cleaned_data.get('university')
+        user.university = uni.name if uni else ''
         if commit:
             user.save()
         return user
@@ -31,7 +37,11 @@ class SellerSignupForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'input-field', 'placeholder': 'your@email.com'}))
     first_name = forms.CharField(max_length=100, label='Full Name', widget=forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Full Name'}))
     matric_number = forms.CharField(max_length=30, widget=forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Matric / Registration Number'}))
-    university = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Your University'}))
+    university = forms.ModelChoiceField(
+        queryset=University.objects.filter(is_active=True),
+        required=True, empty_label='-- Select your university --',
+        widget=forms.Select(attrs={'class': 'input-field', 'id': 'id_university_seller'})
+    )
     student_id_image = forms.ImageField(label='Upload Student ID', widget=forms.FileInput(attrs={'class': 'input-field', 'accept': 'image/*'}))
     brand_name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Your Store / Brand Name'}))
     brand_description = forms.CharField(widget=forms.Textarea(attrs={'class': 'input-field', 'rows': 3, 'placeholder': 'Describe your store...'}))
@@ -47,7 +57,8 @@ class SellerSignupForm(UserCreationForm):
         user.first_name = self.cleaned_data['first_name']
         user.user_type = 'seller'
         user.matric_number = self.cleaned_data['matric_number']
-        user.university = self.cleaned_data['university']
+        uni = self.cleaned_data['university']
+        user.university = uni.name if uni else ''
         if commit:
             user.save()
             if self.cleaned_data.get('student_id_image'):

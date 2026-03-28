@@ -20,6 +20,7 @@ from .models import (
     Notification, Review, SellerVerificationRequest,
     Order, OrderItem, OrderEnquiry, MasterOrder, CampusZone, WithdrawalRequest,
     PromotionPayment, SubscriptionPayment, ProductImage, ProductVideo, SupportMessage,
+    University, CampusArea,
 )
 from .forms import (
     CustomerSignupForm, SellerSignupForm, LoginForm,
@@ -388,9 +389,54 @@ def admin_profile(request):
             brand.save()
             messages.success(request, f'{brand.name} upgraded to Pro.')
 
+        elif action == 'add_university':
+            name = request.POST.get('uni_name', '').strip()
+            if name:
+                uni, created = University.objects.get_or_create(
+                    name=name,
+                    defaults={
+                        'short_name': request.POST.get('uni_short', ''),
+                        'city':       request.POST.get('uni_city', ''),
+                        'state':      request.POST.get('uni_state', ''),
+                        'country':    request.POST.get('uni_country', 'Nigeria'),
+                    }
+                )
+                messages.success(request, f'University "{name}" {"added" if created else "already exists"}.')
+            else:
+                messages.error(request, 'University name is required.')
+
+        elif action == 'toggle_university':
+            uni = get_object_or_404(University, id=request.POST.get('uni_id'))
+            uni.is_active = not uni.is_active
+            uni.save()
+            messages.success(request, f'{uni.name} {"activated" if uni.is_active else "deactivated"}.')
+
+        elif action == 'delete_university':
+            uni = get_object_or_404(University, id=request.POST.get('uni_id'))
+            uni.delete()
+            messages.success(request, 'University deleted.')
+
+        elif action == 'add_campus_area':
+            uni = get_object_or_404(University, id=request.POST.get('uni_id'))
+            area_name = request.POST.get('area_name', '').strip()
+            if area_name:
+                CampusArea.objects.get_or_create(
+                    university=uni, name=area_name,
+                    defaults={
+                        'area_type': request.POST.get('area_type', 'hostel'),
+                    }
+                )
+                messages.success(request, f'Area "{area_name}" added to {uni.name}.')
+
+        elif action == 'delete_area':
+            area = get_object_or_404(CampusArea, id=request.POST.get('area_id'))
+            area.delete()
+            messages.success(request, 'Area deleted.')
+
         return redirect('admin_profile')
 
     total_revenue = orders.aggregate(t=Sum('commission_amount'))['t'] or Decimal('0')
+    universities  = University.objects.prefetch_related('areas').order_by('name')
     return render(request, 'marketplace/profile_admin.html', {
         'users': users, 'brands': brands, 'products': products, 'orders': orders,
         'pending_verifications': pending_verifications,
@@ -402,6 +448,7 @@ def admin_profile(request):
         'total_sellers': users.filter(user_type='seller').count(),
         'total_products': products.filter(status='active').count(),
         'total_orders': orders.count(),
+        'universities': universities,
     })
 
 
@@ -1000,6 +1047,7 @@ def delete_notification(request, notif_id):
 # ORDER MANAGEMENT — customer actions
 # ─────────────────────────────────────────────
 
+@login_required
 def order_detail(request, order_id):
     """Full sub-order detail page — accessible by buyer OR the brand's seller."""
     from django.db.models import Q as _Q
@@ -1547,3 +1595,28 @@ def support_reply(request):
 
 def offline_page(request):
     return render(request, 'marketplace/offline.html')
+
+
+# ─────────────────────────────────────────────
+# UNIVERSITY / CAMPUS AREA API
+# ─────────────────────────────────────────────
+
+def get_campus_areas(request):
+    """AJAX endpoint — return areas for a given university (used in location pickers)."""
+    university_name = request.GET.get('university', '')
+    uni = University.objects.filter(name__icontains=university_name, is_active=True).first()
+    if uni:
+        areas = list(uni.areas.filter(is_active=True).values('id', 'name', 'area_type', 'latitude', 'longitude'))
+    else:
+        areas = []
+    return JsonResponse({'areas': areas})
+
+
+def universities_list(request):
+    """AJAX endpoint — search universities."""
+    q = request.GET.get('q', '')
+    unis = University.objects.filter(is_active=True)
+    if q:
+        unis = unis.filter(name__icontains=q)
+    data = list(unis.values('id', 'name', 'short_name', 'city', 'state', 'latitude', 'longitude')[:20])
+    return JsonResponse({'universities': data})

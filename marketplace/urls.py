@@ -54,6 +54,9 @@ urlpatterns = [
     # Support Chat
     path('support/', views.support_chat, name='support_chat'),
     path('support/reply/', views.support_reply, name='support_reply'),
+    # University/Area API
+    path('api/universities/', views.universities_list, name='universities_list'),
+    path('api/campus-areas/', views.get_campus_areas, name='get_campus_areas'),
     # PWA offline page
     path('offline/', views.offline_page, name='offline'),
     # Wishlist
