@@ -4,7 +4,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}OJA Marketplace{% endblock %}</title>
-  <!-- PWA -->
+  
+  {% load static %}
+  
   <meta name="application-name" content="OJA Campus">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,140 +14,115 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#D4AF37">
   <meta name="description" content="OJA Campus Marketplace — Shop from multiple vendors, one consolidated delivery to your hostel.">
-  <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="{% load static %}{% static 'img/oja_logo.png' %}">
+  
+  <link rel="manifest" href="{% url 'manifest' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/oja_logo.png' %}">
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  {% load static %}
   <link rel="stylesheet" href="{% static 'css/oja.css' %}">
-  <style>
-  /* ── NAVBAR ── */
-  .navbar {
-    position:fixed; top:0; left:0; right:0; z-index:1000;
-    background:rgba(255,255,255,.92);
-    backdrop-filter:blur(12px);
-    border-bottom:1px solid var(--border);
-    transition:box-shadow .3s, background .3s;
-  }
-  .navbar.scrolled { box-shadow:0 4px 24px rgba(0,0,0,.09); }
-  .navbar-inner {
-    max-width:1280px; margin:0 auto; padding:0 1.5rem;
-    height:68px; display:flex; align-items:center; gap:1.5rem;
-  }
-  /* Logo */
-  .navbar-logo { display:flex; align-items:center; gap:.5rem; text-decoration:none; flex-shrink:0; }
-  .navbar-logo img { height:44px; width:auto; object-fit:contain; }
-  /* Search */
-  .navbar-search {
-    flex:1; max-width:480px; position:relative;
-  }
-  .navbar-search input {
-    width:100%; padding:.55rem 1rem .55rem 2.6rem;
-    border:1.5px solid var(--border); border-radius:30px;
-    font-size:.875rem; font-family:inherit; background:#f8f8f8;
-    outline:none; transition:border-color .2s, background .2s;
-  }
-  .navbar-search input:focus { border-color:var(--gold); background:#fff; }
-  .navbar-search .si {
-    position:absolute; left:.85rem; top:50%; transform:translateY(-50%);
-    color:var(--text-muted); pointer-events:none;
-  }
-  /* Nav links */
-  .navbar-links { display:flex; gap:1.75rem; }
-  .navbar-links a {
-    font-size:.875rem; font-weight:600; color:var(--gray-dark);
-    text-decoration:none; position:relative; padding-bottom:2px;
-    transition:color .2s;
-  }
-  .navbar-links a::after {
-    content:''; position:absolute; bottom:0; left:0; width:0; height:2px;
-    background:var(--gold); border-radius:2px; transition:width .2s;
-  }
-  .navbar-links a:hover { color:var(--gold); }
-  .navbar-links a:hover::after { width:100%; }
-  /* Actions */
-  .navbar-actions { display:flex; align-items:center; gap:.5rem; margin-left:auto; }
-  .nb-icon-btn {
-    width:38px; height:38px; border-radius:50%; display:flex; align-items:center;
-    justify-content:center; text-decoration:none; font-size:1.1rem;
-    background:none; border:none; cursor:pointer; transition:background .15s;
-    position:relative; color:var(--gray-dark);
-  }
-  .nb-icon-btn:hover { background:var(--gray-light); }
-  .nb-badge {
-    position:absolute; top:2px; right:2px; width:16px; height:16px;
-    background:#ef4444; color:#fff; border-radius:50%; font-size:.62rem;
-    font-weight:800; display:flex; align-items:center; justify-content:center;
-    border:2px solid #fff;
-  }
-  /* Mobile hamburger */
-  .nb-hamburger { display:none; flex-direction:column; gap:4px; cursor:pointer; padding:8px; border:none; background:none; }
-  .nb-hamburger span { display:block; width:22px; height:2px; background:var(--gray-dark); border-radius:2px; transition:all .25s; }
-  @media(max-width:900px){
-    .navbar-links { display:none; }
-    .navbar-search { max-width:160px; }
-    .nb-hamburger { display:flex; }
-  }
-  @media(max-width:600px){
-    .navbar-search { display:none; }
-  }
-  /* Mobile menu */
-  .mobile-menu {
-    display:none; position:fixed; top:68px; left:0; right:0; bottom:0;
-    background:#fff; z-index:999; padding:1.5rem;
-    flex-direction:column; gap:1rem; overflow-y:auto;
-  }
-  .mobile-menu.open { display:flex; }
-  .mobile-menu a, .mobile-menu button {
-    font-size:1.1rem; font-weight:600; padding:.875rem 1rem;
-    border-radius:10px; text-decoration:none; color:var(--gray-dark);
-    background:none; border:none; cursor:pointer; font-family:inherit;
-    text-align:left; transition:background .15s;
-  }
-  .mobile-menu a:hover, .mobile-menu button:hover { background:var(--gray-light); color:var(--gold); }
 
-  /* ── FOOTER ── */
-  .site-footer {
-    background:#0f172a; color:rgba(255,255,255,.75);
-    padding:4rem 0 0; margin-top:5rem;
-  }
-  .footer-grid {
-    max-width:1280px; margin:0 auto; padding:0 1.5rem;
-    display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:3rem;
-  }
-  @media(max-width:900px){ .footer-grid { grid-template-columns:1fr 1fr; gap:2rem; } }
-  @media(max-width:560px){ .footer-grid { grid-template-columns:1fr; } }
-  .footer-brand img { height:52px; margin-bottom:1rem; }
-  .footer-brand p { font-size:.875rem; line-height:1.7; color:rgba(255,255,255,.5); max-width:260px; }
-  .footer-socials { display:flex; gap:.75rem; margin-top:1.25rem; }
-  .footer-social-btn {
-    width:36px; height:36px; border-radius:50%; border:1.5px solid rgba(255,255,255,.15);
-    display:flex; align-items:center; justify-content:center; font-size:.95rem;
-    text-decoration:none; transition:border-color .2s, background .2s;
-  }
-  .footer-social-btn:hover { border-color:var(--gold); background:rgba(212,175,55,.15); }
-  .footer-col h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--gold); margin-bottom:1.1rem; }
-  .footer-col a { display:block; font-size:.875rem; color:rgba(255,255,255,.55); text-decoration:none; margin-bottom:.6rem; transition:color .15s; }
-  .footer-col a:hover { color:#fff; }
-  .footer-bottom {
-    max-width:1280px; margin:0 auto; padding:1.5rem 1.5rem;
-    border-top:1px solid rgba(255,255,255,.08); margin-top:3rem;
-    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;
-  }
-  .footer-bottom p { font-size:.8rem; color:rgba(255,255,255,.35); }
-  .footer-badges { display:flex; gap:.6rem; flex-wrap:wrap; }
-  .footer-badge {
-    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
-    border-radius:6px; padding:.25rem .75rem; font-size:.72rem; font-weight:600;
-    color:rgba(255,255,255,.5);
-  }
+  <style>
+    /* ── NAVBAR ── */
+    .navbar {
+      position:fixed; top:0; left:0; right:0; z-index:1000;
+      background:rgba(255,255,255,.92);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border);
+      transition:box-shadow .3s, background .3s;
+    }
+    .navbar.scrolled { box-shadow:0 4px 24px rgba(0,0,0,.09); }
+    .navbar-inner {
+      max-width:1280px; margin:0 auto; padding:0 1.5rem;
+      height:68px; display:flex; align-items:center; gap:1.5rem;
+    }
+    .navbar-logo { display:flex; align-items:center; gap:.5rem; text-decoration:none; flex-shrink:0; }
+    .navbar-logo img { height:44px; width:auto; object-fit:contain; }
+    
+    .navbar-search { flex:1; max-width:480px; position:relative; }
+    .navbar-search input {
+      width:100%; padding:.55rem 1rem .55rem 2.6rem;
+      border:1.5px solid var(--border); border-radius:30px;
+      font-size:.875rem; font-family:inherit; background:#f8f8f8;
+      outline:none; transition:border-color .2s, background .2s;
+    }
+    .navbar-search input:focus { border-color:var(--gold); background:#fff; }
+    .navbar-search .si { position:absolute; left:.85rem; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none; }
+
+    .navbar-links { display:flex; gap:1.75rem; }
+    .navbar-links a {
+      font-size:.875rem; font-weight:600; color:var(--gray-dark);
+      text-decoration:none; position:relative; padding-bottom:2px;
+      transition:color .2s;
+    }
+    .navbar-links a::after {
+      content:''; position:absolute; bottom:0; left:0; width:0; height:2px;
+      background:var(--gold); border-radius:2px; transition:width .2s;
+    }
+    .navbar-links a:hover { color:var(--gold); }
+    .navbar-links a:hover::after { width:100%; }
+
+    .navbar-actions { display:flex; align-items:center; gap:.5rem; margin-left:auto; }
+    .nb-icon-btn {
+      width:38px; height:38px; border-radius:50%; display:flex; align-items:center;
+      justify-content:center; text-decoration:none; font-size:1.1rem;
+      background:none; border:none; cursor:pointer; transition:background .15s;
+      position:relative; color:var(--gray-dark);
+    }
+    .nb-icon-btn:hover { background:var(--gray-light); }
+    .nb-badge {
+      position:absolute; top:2px; right:2px; width:16px; height:16px;
+      background:#ef4444; color:#fff; border-radius:50%; font-size:.62rem;
+      font-weight:800; display:flex; align-items:center; justify-content:center;
+      border:2px solid #fff;
+    }
+
+    .nb-hamburger { display:none; flex-direction:column; gap:4px; cursor:pointer; padding:8px; border:none; background:none; }
+    .nb-hamburger span { display:block; width:22px; height:2px; background:var(--gray-dark); border-radius:2px; transition:all .25s; }
+
+    @media(max-width:900px){
+      .navbar-links { display:none; }
+      .navbar-search { max-width:160px; }
+      .nb-hamburger { display:flex; }
+    }
+    @media(max-width:600px){ .navbar-search { display:none; } }
+
+    .mobile-menu {
+      display:none; position:fixed; top:68px; left:0; right:0; bottom:0;
+      background:#fff; z-index:999; padding:1.5rem;
+      flex-direction:column; gap:1rem; overflow-y:auto;
+    }
+    .mobile-menu.open { display:flex; }
+    .mobile-menu a, .mobile-menu button {
+      font-size:1.1rem; font-weight:600; padding:.875rem 1rem;
+      border-radius:10px; text-decoration:none; color:var(--gray-dark);
+      background:none; border:none; cursor:pointer; font-family:inherit;
+      text-align:left; transition:background .15s;
+    }
+
+    /* ── FOOTER ── */
+    .site-footer { background:#0f172a; color:rgba(255,255,255,.75); padding:4rem 0 0; margin-top:5rem; }
+    .footer-grid { max-width:1280px; margin:0 auto; padding:0 1.5rem; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:3rem; }
+    @media(max-width:900px){ .footer-grid { grid-template-columns:1fr 1fr; gap:2rem; } }
+    @media(max-width:560px){ .footer-grid { grid-template-columns:1fr; } }
+    .footer-brand img { height:52px; margin-bottom:1rem; }
+    .footer-brand p { font-size:.875rem; line-height:1.7; color:rgba(255,255,255,.5); max-width:260px; }
+    .footer-socials { display:flex; gap:.75rem; margin-top:1.25rem; }
+    .footer-social-btn {
+      width:36px; height:36px; border-radius:50%; border:1.5px solid rgba(255,255,255,.15);
+      display:flex; align-items:center; justify-content:center; font-size:.95rem;
+      text-decoration:none; transition:border-color .2s, background .2s;
+    }
+    .footer-social-btn:hover { border-color:var(--gold); background:rgba(212,175,55,.15); }
+    .footer-col h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; color:var(--gold); margin-bottom:1.1rem; }
+    .footer-col a { display:block; font-size:.875rem; color:rgba(255,255,255,.55); text-decoration:none; margin-bottom:.6rem; }
+    .footer-bottom { max-width:1280px; margin:0 auto; padding:1.5rem; border-top:1px solid rgba(255,255,255,.08); margin-top:3rem; display:flex; justify-content:space-between; flex-wrap:wrap; }
+    .footer-badge { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:6px; padding:.25rem .75rem; font-size:.72rem; color:rgba(255,255,255,.5); }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-{% load static %}
 
-<!-- ── Navbar ── -->
 <nav class="navbar" id="mainNav">
   <div class="navbar-inner">
     <a href="{% url 'home' %}" class="navbar-logo">
@@ -192,7 +169,6 @@
   </div>
 </nav>
 
-<!-- Mobile Menu -->
 <div class="mobile-menu" id="mobileMenu">
   <a href="{% url 'home' %}">🏠 Home</a>
   <a href="{% url 'brands' %}">🏪 Brands</a>
@@ -201,20 +177,16 @@
   <hr style="border-color:var(--border)">
   {% if user.is_authenticated %}
     <a href="{% url 'profile' %}">👤 My Profile</a>
-    <a href="{% url 'cart' %}">🛒 Cart {% if cart_count > 0 %}({{ cart_count }}){% endif %}</a>
-    <a href="{% url 'wishlist' %}">♡ Wishlist</a>
-    <a href="{% url 'notifications' %}">🔔 Notifications</a>
+    <a href="{% url 'cart' %}">🛒 Cart</a>
     <form method="post" action="{% url 'logout' %}">{% csrf_token %}
       <button type="submit" style="color:#ef4444">🚪 Logout</button>
     </form>
   {% else %}
     <a href="{% url 'login' %}">Login</a>
     <a href="{% url 'signup' %}">Sign Up</a>
-    <a href="{% url 'signup' %}?type=seller">🏪 Sell on OJA</a>
   {% endif %}
 </div>
 
-<!-- Messages -->
 {% if messages %}
 <div class="messages-container" style="padding-top:68px">
   {% for msg in messages %}
@@ -223,68 +195,46 @@
 </div>
 {% endif %}
 
-<!-- Main -->
 <main class="main-content" style="padding-top:68px">
   {% block content %}{% endblock %}
 </main>
 
-<!-- ── Footer ── -->
 <footer class="site-footer">
   <div class="footer-grid">
-    <!-- Brand col -->
     <div class="footer-brand">
       <img src="{% static 'img/oja_logo.png' %}" alt="OJA">
       <p>OJA is the campus marketplace connecting students with trusted local vendors. One bag, one delivery, zero hassle.</p>
-      <div class="footer-socials">
-        <a href="#" class="footer-social-btn" title="Instagram">📸</a>
-        <a href="#" class="footer-social-btn" title="Twitter">🐦</a>
-        <a href="#" class="footer-social-btn" title="WhatsApp">💬</a>
-        <a href="#" class="footer-social-btn" title="TikTok">🎵</a>
-      </div>
     </div>
-    <!-- Shop -->
     <div class="footer-col">
       <h4>Shop</h4>
       <a href="{% url 'brands' %}">Browse Brands</a>
-      <a href="{% url 'categories' %}">All Categories</a>
       <a href="{% url 'deals' %}">Today's Deals</a>
-      <a href="{% url 'home' %}">New Arrivals</a>
     </div>
-    <!-- Sellers -->
     <div class="footer-col">
       <h4>Sellers</h4>
       <a href="{% url 'signup' %}?type=seller">Start Selling</a>
-      <a href="{% url 'seller_onboard' %}">Seller Onboarding</a>
-      <a href="#">Seller Guide</a>
-      <a href="#">Commission Info</a>
     </div>
-    <!-- Help -->
     <div class="footer-col">
       <h4>Help</h4>
-      <a href="#">How It Works</a>
-      <a href="#">OJA Hub & Delivery</a>
-      <a href="#">Escrow Protection</a>
       <a href="mailto:support@oja.campus">Contact Us</a>
     </div>
   </div>
   <div class="footer-bottom">
-    <p>© 2025 OJA Marketplace. Built for campus communities.</p>
+    <p>© 2026 OJA Marketplace. Built for campus communities.</p>
     <div class="footer-badges">
       <span class="footer-badge">🔒 Escrow Protected</span>
-      <span class="footer-badge">✓ Verified Sellers</span>
       <span class="footer-badge">🛵 Campus Delivery</span>
-      <span class="footer-badge">💳 Paystack Secured</span>
     </div>
   </div>
 </footer>
 
 <script>
-// Navbar scroll shadow
+// Navbar shadow
 window.addEventListener('scroll', function(){
   document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 10);
 });
 
-// Hamburger toggle
+// Hamburger
 document.getElementById('hamburgerBtn').addEventListener('click', function(){
   var menu = document.getElementById('mobileMenu');
   menu.classList.toggle('open');
@@ -298,26 +248,12 @@ document.getElementById('hamburgerBtn').addEventListener('click', function(){
   }
 });
 
-// Close mobile menu on outside click
-document.addEventListener('click', function(e){
-  var menu = document.getElementById('mobileMenu');
-  var btn = document.getElementById('hamburgerBtn');
-  if(menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)){
-    menu.classList.remove('open');
-    btn.querySelectorAll('span').forEach(s => s.style.cssText='');
-  }
-});
-</script>
-{% block extra_scripts %}{% endblock %}
-
-<script>
-// ── Service Worker Registration ──
+// ── Service Worker & PWA Logic ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    navigator.serviceWorker.register("{% url 'sw' %}", { scope: '/' })
       .then(function(reg) {
         console.log('[OJA] SW registered:', reg.scope);
-        // Check for updates every 60s
         setInterval(function() { reg.update(); }, 60000);
       })
       .catch(function(err) {
@@ -326,14 +262,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ── PWA Install Prompt ──
+// PWA Install Prompt
 var deferredPrompt = null;
 var installBanner  = null;
 
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   deferredPrompt = e;
-  // Show install banner after 3s on mobile
   if (window.innerWidth < 900) {
     setTimeout(showInstallBanner, 3000);
   }
@@ -343,9 +278,9 @@ function showInstallBanner() {
   if (installBanner || localStorage.getItem('oja-pwa-dismissed')) return;
   installBanner = document.createElement('div');
   installBanner.id = 'ojaPwaBanner';
-  installBanner.innerHTML = \`
+  installBanner.innerHTML = `
     <div style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f172a;border-top:2px solid #D4AF37;padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;box-shadow:0 -4px 20px rgba(0,0,0,.3)">
-      <img src="/static/img/oja_logo.png" style="width:40px;height:40px;border-radius:8px;flex-shrink:0" alt="OJA">
+      <img src="{% static 'img/oja_logo.png' %}" style="width:40px;height:40px;border-radius:8px;flex-shrink:0" alt="OJA">
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;color:#fff;font-size:.875rem">Add OJA to Home Screen</div>
         <div style="font-size:.75rem;color:rgba(255,255,255,.5)">Install for faster access & offline browsing</div>
@@ -353,7 +288,7 @@ function showInstallBanner() {
       <button onclick="installPwa()" style="background:#D4AF37;color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;font-weight:700;font-size:.8rem;cursor:pointer;white-space:nowrap;font-family:inherit">Install</button>
       <button onclick="dismissPwaBanner()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1.25rem;padding:.25rem;flex-shrink:0">✕</button>
     </div>
-  \`;
+  `;
   document.body.appendChild(installBanner);
 }
 
@@ -361,9 +296,7 @@ function installPwa() {
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
   deferredPrompt.userChoice.then(function(result) {
-    if (result.outcome === 'accepted') {
-      dismissPwaBanner();
-    }
+    if (result.outcome === 'accepted') dismissPwaBanner();
     deferredPrompt = null;
   });
 }
@@ -373,28 +306,23 @@ function dismissPwaBanner() {
   localStorage.setItem('oja-pwa-dismissed', '1');
 }
 
-window.addEventListener('appinstalled', function() {
-  dismissPwaBanner();
-  console.log('[OJA] PWA installed');
-});
-
-// ── Offline / Online indicator ──
+// Offline/Online status
 function updateOnlineStatus() {
   var existing = document.getElementById('ojaOfflineBanner');
   if (!navigator.onLine) {
     if (!existing) {
       var banner = document.createElement('div');
       banner.id = 'ojaOfflineBanner';
-      banner.innerHTML = '<div style="position:fixed;top:68px;left:0;right:0;z-index:950;background:#ef4444;color:#fff;text-align:center;padding:.5rem;font-size:.8rem;font-weight:700">📡 You're offline — some features may not work</div>';
-      document.body.appendChild(banner);
+      banner.innerHTML = `<div ...>📡 You're offline — some features may not work</div>`;      document.body.appendChild(banner);
     }
   } else if (existing) {
     existing.remove();
   }
 }
-window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
 </script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>
