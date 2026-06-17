@@ -100,7 +100,7 @@
         <!-- Add to cart -->
         {% if user.is_authenticated %}
           {% if product.stock > 0 %}
-          <form method="post" action="{% url 'add_to_cart' product.id %}" style="margin-bottom:1rem" data-ajax="true">
+          <form method="post" action="{% url 'add_to_cart' product.id %}" style="margin-bottom:1rem">
             {% csrf_token %}
             <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem">
               <label style="font-weight:600;font-size:.9rem">Qty:</label>
@@ -109,7 +109,7 @@
             <button type="submit" class="btn-gold w-full" style="justify-content:center">🛒 Add to Cart</button>
           </form>
           {% endif %}
-          <form method="post" action="{% url 'toggle_wishlist' product.id %}" data-ajax="true">
+          <form method="post" action="{% url 'toggle_wishlist' product.id %}">
             {% csrf_token %}
             <button type="submit" class="btn-outline w-full" style="justify-content:center">
               {% if is_in_wishlist %}♥ Remove from Wishlist{% else %}♡ Add to Wishlist{% endif %}

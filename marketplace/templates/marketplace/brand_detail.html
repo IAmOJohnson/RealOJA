@@ -303,7 +303,7 @@
             {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}">{% else %}📦{% endif %}
             {% if p.discount %}<span class="pc-discount-badge">-{{ p.discount }}%</span>{% endif %}
             {% if user.is_authenticated %}
-            <form method="post" action="{% url 'toggle_wishlist' p.id %}" onclick="event.stopPropagation()" data-ajax="true">
+            <form method="post" action="{% url 'toggle_wishlist' p.id %}" onclick="event.stopPropagation()">
               {% csrf_token %}
               <button type="submit" class="pc-wl-btn {% if p.id in wishlist_ids %}wishlisted{% endif %}">
                 <svg viewBox="0 0 24 24" fill="{% if p.id in wishlist_ids %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
@@ -318,7 +318,7 @@
               {% if p.original_price != p.price %}<span class="pc-orig">₦{{ p.original_price|floatformat:0 }}</span>{% endif %}
             </div>
             {% if user.is_authenticated %}
-            <form method="post" action="{% url 'add_to_cart' p.id %}" onclick="event.stopPropagation()" data-ajax="true">
+            <form method="post" action="{% url 'add_to_cart' p.id %}" onclick="event.stopPropagation()">
               {% csrf_token %}
               <button type="submit" class="pc-cart-btn">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.99-1.61L23 6H6"/></svg>
