@@ -19,11 +19,11 @@
           <div style="display:flex;gap:.5rem;margin-top:.75rem">
             <form method="post" action="{% url 'add_to_cart' item.product.id %}">
               {% csrf_token %}
-              <button type="submit" class="btn-gold" style="padding:.4rem .8rem;font-size:.85rem">Add to Cart</button>
+                <button type="submit" class="btn-gold" style="padding:.4rem .8rem;font-size:.85rem" data-ajax="true">Add to Cart</button>
             </form>
             <form method="post" action="{% url 'toggle_wishlist' item.product.id %}">
               {% csrf_token %}
-              <button type="submit" class="btn-outline" style="padding:.4rem .8rem;font-size:.85rem">Remove</button>
+                <button type="submit" class="btn-outline" style="padding:.4rem .8rem;font-size:.85rem" data-ajax="true">Remove</button>
             </form>
           </div>
         </div>

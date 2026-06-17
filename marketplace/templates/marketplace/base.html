@@ -608,5 +608,52 @@ window.addEventListener('online',  _updateOnline);
 window.addEventListener('offline', _updateOnline);
 _updateOnline();
 </script>
+<script>
+// AJAX form handler for add-to-cart and wishlist actions
+document.addEventListener('submit', function(e){
+  var form = e.target;
+  if(!(form instanceof HTMLFormElement)) return;
+  var hasAjax = form.dataset.ajax === 'true' || form.querySelector('button[data-ajax="true"], input[data-ajax="true"]');
+  if(!hasAjax) return;
+  e.preventDefault();
+  var submitBtn = e.submitter || form.querySelector('button[type=submit], input[type=submit]');
+  if(submitBtn) submitBtn.disabled = true;
+  var csrfInput = form.querySelector('[name=csrfmiddlewaretoken]');
+  var csrf = csrfInput ? csrfInput.value : '';
+  fetch(form.action, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': csrf
+    },
+    body: new FormData(form)
+  }).then(function(res){ return res.json(); })
+  .then(function(data){
+    if(submitBtn) submitBtn.disabled = false;
+    if(data.cart_count !== undefined){
+      document.querySelectorAll('a[title="Cart"] .nb-badge, #bnavCart .bnav-badge').forEach(function(el){
+        el.textContent = data.cart_count;
+        el.style.display = data.cart_count ? '' : 'none';
+      });
+    }
+    if(data.action){
+      // Update wishlist button state inside the form
+      var btn = form.querySelector('button[type=submit], input[type=submit]');
+      if(btn){
+        if(data.action === 'added'){
+          btn.classList.add('wishlisted','pc-wl-active');
+          var svg = btn.querySelector('svg'); if(svg) svg.setAttribute('fill','currentColor');
+        } else {
+          btn.classList.remove('wishlisted','pc-wl-active');
+          var svg = btn.querySelector('svg'); if(svg) svg.setAttribute('fill','none');
+        }
+      }
+    }
+  }).catch(function(err){
+    console.error('AJAX form error', err);
+    if(submitBtn) submitBtn.disabled = false;
+  });
+});
+</script>
 </body>
 </html>

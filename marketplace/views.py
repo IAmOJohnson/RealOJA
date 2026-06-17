@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from decimal import Decimal
 import json
+from django.http import JsonResponse
 
 from .emails import (
     send_order_receipt, send_seller_new_order, send_order_shipped,
@@ -658,6 +659,14 @@ def add_to_cart(request, product_id):
     if not created:
         cart_item.quantity += quantity
         cart_item.save()
+    # If this is an AJAX request, return JSON so frontend can update without reload
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        cart_count = CartItem.objects.filter(user=request.user).aggregate(total=Sum('quantity'))['total'] or 0
+        return JsonResponse({
+            'ok': True,
+            'message': f'"{product.name}" added to cart.',
+            'cart_count': cart_count,
+        })
     messages.success(request, f'"{product.name}" added to cart.')
     return redirect(request.META.get('HTTP_REFERER', 'cart'))
 
@@ -1035,8 +1044,13 @@ def toggle_wishlist(request, product_id):
     item, created = WishlistItem.objects.get_or_create(user=request.user, product=product)
     if not created:
         item.delete()
+        # AJAX response
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'ok': True, 'action': 'removed', 'wishlist_count': WishlistItem.objects.filter(user=request.user).count()})
         messages.info(request, f'Removed "{product.name}" from wishlist.')
     else:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'ok': True, 'action': 'added', 'wishlist_count': WishlistItem.objects.filter(user=request.user).count()})
         messages.success(request, f'"{product.name}" added to wishlist.')
     return redirect(request.META.get('HTTP_REFERER', 'wishlist'))
 
