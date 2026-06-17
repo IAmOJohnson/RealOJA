@@ -612,8 +612,40 @@ def deals(request):
 @login_required
 def cart(request):
     cart_items = CartItem.objects.filter(user=request.user).select_related('product__brand')
-    total = sum(item.subtotal for item in cart_items)
-    return render(request, 'marketplace/cart.html', {'cart_items': cart_items, 'total': total})
+    total      = sum(item.subtotal for item in cart_items)
+
+    # Detect single-brand vs multi-brand cart
+    brand_ids  = list({item.product.brand_id for item in cart_items})
+    is_single  = len(brand_ids) == 1
+    single_brand = cart_items[0].product.brand if is_single and cart_items else None
+
+    # Build WhatsApp message for single-brand orders
+    wa_message = ''
+    if is_single and single_brand and single_brand.whatsapp:
+        lines = [f"Hi {single_brand.name}! I'd like to place an order via OJA:"]
+        for item in cart_items:
+            lines.append(f'• {item.product.name} x{item.quantity} — ₦{item.subtotal:,.0f}')
+        lines.append(f'Total: ₦{total:,.0f}')
+        lines.append('(I found your store on OJA Campus Marketplace)')
+        wa_message = '%0A'.join(lines)
+
+    return render(request, 'marketplace/cart.html', {
+        'cart_items':    cart_items,
+        'total':         total,
+        'is_single':     is_single,
+        'single_brand':  single_brand,
+        'brand_count':   len(brand_ids),
+            'wa_message':    wa_message,
+            # Precompute brand groups and subtotals for the template
+            'brand_groups_summary': [
+                {
+                    'grouper': brand,
+                    'list': items,
+                    'subtotal': sum(i.subtotal for i in items),
+                }
+                for brand, items in __import__('collections').defaultdict(list, {item.product.brand: [it for it in cart_items if it.product.brand == item.product.brand] for item in cart_items}).items()
+            ],
+    })
 
 
 @login_required
